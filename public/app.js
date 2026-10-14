@@ -26,12 +26,12 @@ function table(items,columns,includeActions=false){if(!items.length)return '<div
 function panel(title,inside,detail=''){return `<div class="panel"><div class="panel-head"><h3>${esc(title)}</h3>${detail}</div>${inside}</div>`}
 function metrics(items){return `<div class="grid">${(items||[]).map(item=>`<div class="stat"><strong>${cell(item.value)}</strong><span>${esc(item.label)}</span></div>`).join('')}</div>`}
 function paintNotice(){const el=document.getElementById('message');if(!el)return;el.className=notice?'notice '+noticeType:'hidden';el.textContent=notice;}
-function skeleton(){root.innerHTML=`<div class="layout layout-${app.name.toLowerCase()}"><aside class="sidebar"><div class="brand"><div class="brand-icon">${esc(app.icon)}</div><div><h1>${esc(app.name)}</h1><small>${esc(identity.sidebar)}</small></div></div><div><div class="nav-label">${esc(identity.label)}</div><nav class="nav" id="navigation"><button data-page="overview">${esc(identity.symbol)} &nbsp; Command</button>${app.sections.map(s=>`<button data-page="${esc(s.id)}">${esc(identity.icons[app.sections.indexOf(s)]||"•")} &nbsp; ${esc(s.label)}</button>`).join('')}</nav></div><div class="footnote"><b>${esc(identity.footer)}</b><br/><span class="connection-dot"></span> Cloudflare Workers · D1<br/>GitHub Actions · continuous delivery</div></aside><main><header class="topbar"><div><div class="eyebrow">${esc(identity.label)}</div><h2 id="page-title"></h2><p id="page-subtitle" class="muted"></p></div><div class="actions"><button class="btn secondary" id="auth">Access key</button><button class="btn secondary" id="refresh">↻ Sync data</button></div></header><div id="message" class="hidden"></div><div id="content"></div></main></div>`;
+function skeleton(){root.innerHTML=`<div class="layout layout-${app.name.toLowerCase()}"><aside class="sidebar"><div class="brand"><div class="brand-icon">${esc(app.icon)}</div><div><h1>${esc(app.name)}</h1><small>${esc(identity.sidebar)}</small></div></div><div><div class="nav-label">${esc(identity.label)}</div><nav class="nav" id="navigation"><button data-page="overview">${esc(identity.symbol)} &nbsp; Command</button>${app.sections.map(s=>`<button data-page="${esc(s.id)}">${esc(identity.icons[app.sections.indexOf(s)]||"•")} &nbsp; ${esc(s.label)}</button>`).join('')}<button data-page="access">♙ &nbsp; Access control</button></nav></div><div class="footnote"><b>${esc(identity.footer)}</b><br/><span class="connection-dot"></span> Cloudflare Workers · D1<br/>GitHub Actions · continuous delivery</div></aside><main><header class="topbar"><div><div class="eyebrow">${esc(identity.label)}</div><h2 id="page-title"></h2><p id="page-subtitle" class="muted"></p></div><div class="actions"><button class="btn secondary" id="auth">Access key</button><button class="btn secondary" id="refresh">↻ Sync data</button></div></header><div id="message" class="hidden"></div><div id="content"></div></main></div>`;
  document.querySelectorAll('[data-page]').forEach(btn=>btn.addEventListener('click',()=>{page=btn.dataset.page;notice='';render()}));
  document.getElementById('refresh').onclick=()=>render();
  document.getElementById('auth').onclick=()=>{const value=prompt('Enter the ADMIN_TOKEN secret configured in the deployed Cloudflare Worker. Leave blank to clear it. This is stored only in this browser tab.');if(value!==null){if(value)sessionStorage.setItem('portfolio-admin-token',value);else sessionStorage.removeItem('portfolio-admin-token');render()}};
 }
-function title(){document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));const s=app.sections.find(s=>s.id===page);document.getElementById('page-title').textContent=s?.label||'Overview';document.getElementById('page-subtitle').textContent=page==='overview'?app.tagline:'Live data from your own Cloudflare D1 database';paintNotice()}
+function title(){document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));const s=app.sections.find(s=>s.id===page);document.getElementById('page-title').textContent=s?.label||(page==='access'?'Access control':'Overview');document.getElementById('page-subtitle').textContent=page==='overview'?app.tagline:'Live data from your own Cloudflare D1 database';paintNotice()}
 async function fieldsHtml(fields){return (await Promise.all(fields.map(async f=>{
  const id='field-'+f.name;let field='';let def=f.default??'';
  if(f.type==='json'){field=`<textarea id="${id}" name="${f.name}" class="large" spellcheck="false">${esc(pretty(def||{}))}</textarea>`}
@@ -91,5 +91,37 @@ async function custom(spec){const el=document.getElementById('content');
  const seed=document.createElement('button');seed.className='btn secondary';seed.textContent='Create sample dataset + experiment';el.prepend(seed);seed.onclick=async()=>{try{await api('/api/seed','POST',{});success('Example created')}catch(e){error(e)}};
  }
 }
-async function render(){skeleton();title();const spec=app.sections.find(s=>s.id===page);try{if(page==='overview')await overview();else if(spec?.custom)await custom(spec);else if(spec){await renderList(spec);try{await enrichSection({root:document.getElementById('content'),page,api,esc,success,error})}catch(e){console.warn('Workspace enhancement unavailable',e)}};}catch(e){error(e)}}
+async function renderAccess(){
+ const where=document.getElementById('content');
+ where.innerHTML=panel('Access control',`<p class="muted">Loading credential policy and key inventory…</p>`);
+ try {
+  const me=await api('/api/access/me');
+  const root=me.kind==='root';
+  if(!root){where.innerHTML=panel('Your credential',`<p>Authenticated as <b>${esc(me.label)}</b> · ${esc(me.role)}. Only the root administrator can issue and revoke keys.</p><p class="muted">Scope: <code>${esc(me.route_prefix)}</code></p>`);return;}
+  const [keys,audit]=await Promise.all([api('/api/access/keys'),api('/api/access/audit')]);
+  where.innerHTML=panel('Issue a scoped API key',`<form id="credential-form"><div class="field"><label for="key-label">Purpose / label</label><input name="label" id="key-label" maxlength="100" placeholder="Analyst read-only" required /></div><div class="field"><label for="key-role">Role</label><select name="role" id="key-role"><option value="viewer">Viewer · read-only</option><option value="operator">Operator · read/write, no DELETE</option></select></div><div class="field"><label for="key-prefix">API route prefix</label><input name="route_prefix" id="key-prefix" value="/api/" required pattern="/api/.*" /></div><div class="field"><label for="key-days">Expires after days (1–90)</label><input name="expires_in_days" id="key-days" type="number" min="1" max="90" value="30" required /></div><button class="btn" type="submit">Issue one-time credential</button></form><div id="credential-created" aria-live="polite"></div>`,`<small>Root token required</small>`)+
+   panel('Active and revoked credentials',table(keys.items||[],['label','role','route_prefix','created_at','expires_at','revoked_at','last_used_at'],false)+`<div id="credential-actions"></div>`)+
+   panel('Credential audit',table((audit.items||[]).slice(0,35),['action','subject_id','actor_id','created_at']));
+  const form=document.getElementById('credential-form');
+  form.onsubmit=async e=>{e.preventDefault();try{
+   const payload={label:form.elements.label.value,role:form.elements.role.value,route_prefix:form.elements.route_prefix.value,expires_in_days:Number(form.elements.expires_in_days.value)};
+   const created=await api('/api/access/keys','POST',payload);
+   const slot=document.getElementById('credential-created');
+   slot.replaceChildren();
+   const heading=document.createElement('p');heading.textContent='New credential — save now. This is the only time it will be shown.';
+   const secret=document.createElement('textarea');secret.readOnly=true;secret.rows=3;secret.value=created.token;secret.setAttribute('aria-label','One-time API key');
+   const copy=document.createElement('button');copy.type='button';copy.className='btn secondary';copy.textContent='Copy credential';copy.onclick=async()=>{try{await navigator.clipboard.writeText(created.token);success('Credential copied to clipboard. Store it securely.')}catch{secret.select();success('Select and copy the credential manually.')}};
+   slot.append(heading,secret,copy);success('Scoped credential issued. Reload this panel after saving the token to see the updated inventory.');
+  }catch(ex){error(ex)}};
+  const section=document.getElementById('credential-actions');
+  const active=(keys.items||[]).filter(k=>!k.revoked_at);
+  for(const key of active){const row=document.createElement('div');row.className='field';
+   const label=document.createElement('span');label.textContent=`${key.label} · ${key.role} · ${key.id.slice(0,8)}`;
+   const revoke=document.createElement('button');revoke.className='btn secondary small';revoke.textContent='Revoke';revoke.onclick=async()=>{if(!confirm(`Revoke credential "${key.label}" immediately?`))return;try{await api(`/api/access/keys/${encodeURIComponent(key.id)}/revoke`,'POST',{});success('Credential revoked');await renderAccess()}catch(ex){error(ex)}};
+   row.append(label,revoke);section.appendChild(row);
+  }
+ }catch(ex){where.innerHTML=panel('Access control unavailable',`<p>${esc(ex.message)}</p><p class="muted">Sign in with your root ADMIN_TOKEN. Delegated credentials may be restricted to other API routes.</p>`)}
+}
+
+async function render(){skeleton();title();const spec=app.sections.find(s=>s.id===page);try{if(page==='overview')await overview();else if(page==='access')await renderAccess();else if(spec?.custom)await custom(spec);else if(spec){await renderList(spec);try{await enrichSection({root:document.getElementById('content'),page,api,esc,success,error})}catch(e){console.warn('Workspace enhancement unavailable',e)}};}catch(e){error(e)}}
 render();

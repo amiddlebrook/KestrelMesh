@@ -37,3 +37,7 @@ Free-tier hosting deliberately limits scope. This is not a horizontally scalable
 ## Phase 3: Atomic half-open probes
 
 A D1 UPSERT compare-and-set reserves a 30-second lease for the first half-open request, suppressing simultaneous recovery probes. Lease expiration allows retry after a crashed worker. This does not yet implement global per-provider concurrency, complete request deadlines or distributed quotas.
+
+## Phase 4: Delegated API credentials
+
+`0004_access.sql` introduces expiring, revocable, SHA-256-hashed delegated credentials and an issuance/revocation audit. Authentication is enforced by `src/access.ts` from `withApi`, before any domain route executes. The shared API key policy does **not** implement object-level ACLs or tenant isolation. Access operations are confined to the root Worker `ADMIN_TOKEN`, and delegated keys are intentionally unable to administer credentials. See [`SECURITY.md`](SECURITY.md).

@@ -20,6 +20,11 @@ for(let attempt=1;attempt<=7;attempt++){
   assert.ok(Array.isArray(domain.items),'Domain-specific D1 API contract missing');
   const phase3=await (await check('/api/circuit-leases',200,token)).json();
   assert.ok(Array.isArray(phase3.items),'New domain module or migration missing on deployed Cloudflare Worker');
+  const accessMe=await (await check('/api/access/me',200,token)).json();
+  assert.equal(accessMe.kind,'root','Production root access was not accepted');
+  const inventory=await (await check('/api/access/keys',200,token)).json();
+  assert.ok(Array.isArray(inventory.items),'Credential migration not present in production');
+  await check('/api/access/keys',401);
   const identityStyle=await (await check('/identity.css',200)).text();
   assert.ok(identityStyle.length>3000,'Domain-specific visual design missing from live Worker');
   const identityApp=await (await check('/experience.js',200)).text();

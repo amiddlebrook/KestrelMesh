@@ -62,15 +62,22 @@ export async function generate(env: Env, system: string, user: string, maxTokens
 export function count(row: { n: number } | null): number { return Number(row?.n || 0) }
 export async function withApi(req: Request, env: Env, fn: Handler): Promise<Response> {
   const url = new URL(req.url);
-  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: { 'Allow': 'GET, POST, DELETE, OPTIONS' } });
-  if (url.pathname === '/api/health') return json({ ok: true, app: 'online', time: now() });
-  // The only unprotected mode is local Wrangler development. A public deployment
-  // must have a separate secret, never shipped in JavaScript or checked into Git.
-  const local = ['localhost','127.0.0.1'].includes(url.hostname);
-  if (!local && !env.ADMIN_TOKEN) return json({ error: 'Deployment disabled: configure ADMIN_TOKEN Worker secret' }, 503);
-  const token = req.headers.get('Authorization')?.replace(/^Bearer /i, '');
-  if (!local && token !== env.ADMIN_TOKEN) return json({ error: 'Unauthorized' }, 401);
-  try { return await fn(req, env, url) }
-  catch (error) { if (error instanceof HttpError) return json({ error: error.message }, error.status);
-    console.error('Request error', error); return json({ error: 'Internal server error' }, 500) }
+  if (req.method === 'OPTIONS') return new Response(null,{status:204,headers:{Allow:'GET, HEAD, POST, DELETE, OPTIONS'}});
+  if (url.pathname === '/api/health' && (req.method==='GET'||req.method==='HEAD')) return json({ok:true,app:'online',time:now()});
+  const local=['localhost','127.0.0.1'].includes(url.hostname);
+  if (!local && !env.ADMIN_TOKEN) return json({error:'Deployment disabled: configure ADMIN_TOKEN Worker secret'},503);
+  try {
+    // Local Wrangler remains convenient for demos. Production always requires auth.
+    const access=await import('./access');
+    const principal=local
+      ? {kind:'root' as const,role:'admin' as const,id:null,label:'Local development',prefix:'/api/'}
+      : await access.authenticate(req,env,url);
+    const managed=await access.accessApi(req,env,url,principal);
+    if(managed) return managed;
+    return await fn(req,env,url);
+  } catch(error) {
+    if(error instanceof HttpError) return json({error:error.message},error.status);
+    console.error('Request error',error);
+    return json({error:'Internal server error'},500);
+  }
 }
