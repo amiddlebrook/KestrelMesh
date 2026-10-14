@@ -5,5 +5,6 @@ node_modules/
 *.log
 coverage/
 dist/
+tests/.compiled/
 __pycache__/
 *.pyc
