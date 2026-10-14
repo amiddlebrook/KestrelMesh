@@ -22,9 +22,9 @@ Visit the localhost URL printed by Wrangler and use **Load sample data**. The ap
 
 Two GitHub Actions workflows are included: `ci.yml` runs checks/tests for pull requests and pushes, and `deploy.yml` runs checks/tests, creates/reuses the `portfolio-kestrelmesh-db` D1 database, applies migrations, and deploys `portfolio-kestrelmesh` on **every push to `main`**. The workflow fails clearly when credentials have not yet been configured.
 
-Configure the repository **Actions Secrets** `CLOUDFLARE_API_TOKEN` (scoped to the intended account: Workers Scripts Edit, D1 Edit, relevant account read access) and `CLOUDFLARE_ACCOUNT_ID` (account ID, not password). Alternatively, use Cloudflare Workers Builds to connect your repository through GitHub, but do not enable two competing auto-deploy pipelines.
+Configure the repository **Actions Secrets** `CLOUDFLARE_API_TOKEN` (scoped to the intended account: Workers Scripts Edit, D1 Edit, relevant account read access) and `CLOUDFLARE_ACCOUNT_ID` (account ID, not password), plus `APP_ADMIN_TOKEN` (a long, randomly generated token unique to this app). Alternatively, use Cloudflare Workers Builds to connect your repository through GitHub, but do not enable two competing auto-deploy pipelines.
 
-The application API protects all non-health endpoints with a Worker secret named `ADMIN_TOKEN` once deployed publicly. Set it once from an authenticated Wrangler CLI: `npx wrangler secret put ADMIN_TOKEN --name portfolio-kestrelmesh`. Keep the token out of the repo and browser source. To enter the token, click **API token** in the live dashboard. Without that Worker secret, the deployed API intentionally responds with 503.
+The application API protects all non-health endpoints with a Worker secret named `ADMIN_TOKEN` once deployed publicly. The deploy workflow automatically installs it from the GitHub `APP_ADMIN_TOKEN` secret with `wrangler secret put ADMIN_TOKEN` after publishing. Keep it out of the repo and browser source. To enter the token, click **API token** in the live dashboard. Without that Worker secret, the deployed API intentionally responds with 503.
 
 ## Deployment notes
 

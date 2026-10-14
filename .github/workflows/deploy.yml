@@ -34,3 +34,5 @@ jobs:
         run: bash scripts/bootstrap-d1.sh
       - name: Deploy API and static site
         run: npx wrangler deploy
+            - name: Configure protected API secret
+              run: printf "%s" "$APP_ADMIN_TOKEN" | npx wrangler secret put ADMIN_TOKEN
