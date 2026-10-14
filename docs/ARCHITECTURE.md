@@ -33,3 +33,7 @@ All persistent data is stored in per-application D1. The application frontend an
 ## Design tradeoffs
 
 Free-tier hosting deliberately limits scope. This is not a horizontally scalable, multi-tenant production system; global SLAs, audited governance and paid provider budgets cannot be validated with tiny synthetic workloads. No paid upgrade should occur automatically.
+
+## Phase 3: Atomic half-open probes
+
+A D1 UPSERT compare-and-set reserves a 30-second lease for the first half-open request, suppressing simultaneous recovery probes. Lease expiration allows retry after a crashed worker. This does not yet implement global per-provider concurrency, complete request deadlines or distributed quotas.

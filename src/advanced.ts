@@ -5,6 +5,19 @@ export async function disabledByCircuit(env:Env):Promise<Set<string>>{
  const circuits=await list<Circuit>(env,'SELECT * FROM circuit_breakers');const timestamp=now();
  return new Set(circuits.filter(c=>effectiveState(c,timestamp)==='open').map(c=>c.model_id));
 }
+export async function acquireHalfOpenProbe(env:Env,modelId:string):Promise<{allowed:boolean;lease_id:string|null;state:string}>{
+ const circuit=await first<Circuit>(env,'SELECT * FROM circuit_breakers WHERE model_id=?',modelId);
+ const state=effectiveState(circuit,now());
+ if(state==='open')return {allowed:false,lease_id:null,state};
+ if(state==='closed')return {allowed:true,lease_id:null,state};
+ const token=uid(),expiry=new Date(Date.now()+30000).toISOString(),timestamp=now();
+ // SQLite UPSERT CAS: only one concurrent half-open request can hold the slot.
+ const result=await env.DB.prepare('INSERT INTO circuit_leases(model_id,lease_id,expires_at,created_at) VALUES(?,?,?,?) ON CONFLICT(model_id) DO UPDATE SET lease_id=excluded.lease_id,expires_at=excluded.expires_at,created_at=excluded.created_at WHERE circuit_leases.expires_at<=?').bind(modelId,token,expiry,timestamp,timestamp).run();
+ return {allowed:!!result.meta?.changes,lease_id:result.meta?.changes?token:null,state};
+}
+export async function releaseHalfOpenProbe(env:Env,modelId:string,leaseId:string|null):Promise<void>{
+ if(leaseId)await execute(env,'DELETE FROM circuit_leases WHERE model_id=? AND lease_id=?',modelId,leaseId);
+}
 export async function recordCircuit(env:Env,modelId:string,success:boolean):Promise<void>{
  const existing=await first<Circuit>(env,'SELECT * FROM circuit_breakers WHERE model_id=?',modelId);const timestamp=now();
  const state=effectiveState(existing,timestamp),failures=success?0:(state==='half_open'?3:(existing?.consecutive_failures||0)+1);
@@ -19,6 +32,7 @@ export async function advancedApi(req:Request,env:Env,url:URL):Promise<Response|
   const timestamp=now();const rows=await list<Circuit&{model:string}>(env,'SELECT c.*,c.model_id id,m.name model FROM circuit_breakers c JOIN models m ON m.id=c.model_id ORDER BY c.updated_at DESC LIMIT ?',limit(url));
   return json({items:rows.map(c=>({...c,effective_state:effectiveState(c,timestamp)}))});
  }
+ if(p==='/api/circuit-leases'&&m==='GET')return json({items:await list(env,'SELECT l.model_id,m.name model,l.expires_at,l.created_at FROM circuit_leases l JOIN models m ON m.id=l.model_id ORDER BY l.created_at DESC LIMIT ?',limit(url))});
  if(p==='/api/circuit-events'&&m==='GET')return json({items:await list(env,'SELECT e.*,m.name model FROM circuit_events e JOIN models m ON m.id=e.model_id ORDER BY e.created_at DESC LIMIT ?',limit(url))});
  const reset=p.match(/^\/api\/circuits\/([^/]+)\/reset$/);
  if(reset&&m==='POST'){

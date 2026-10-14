@@ -2,7 +2,7 @@ export default {
   "name": "KestrelMesh",
   "tagline": "AI inference routing and telemetry",
   "accent": "#d0b082",
-  "icon": "\u27d0",
+  "icon": "⟐",
   "sections": [
     {
       "id": "models",
@@ -127,6 +127,16 @@ export default {
         "to_state",
         "reason",
         "created_at"
+      ]
+    },
+    {
+      "id": "leases",
+      "label": "Recovery Leases",
+      "endpoint": "/api/circuit-leases",
+      "columns": [
+        "model",
+        "created_at",
+        "expires_at"
       ]
     }
   ]

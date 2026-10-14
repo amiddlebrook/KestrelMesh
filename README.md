@@ -44,3 +44,7 @@ This is a scoped, functional MVP with a single privileged admin token; no SSO, f
 - Failed-provider exclusion during route selection and failure/recovery traces.
 
 These are verifiable domain-specific features, **not** a claim of production maturity, SOC-2 certification, multi-tenant isolation, or unlimited free inference.
+
+## Current reliability milestone
+
+See `docs/ARCHITECTURE.md` for the application-specific Phase 3 mechanism. These features have local SQLite-backed regression tests and Cloudflare authenticated smoke checks. Free tiers impose CPU, request, storage and AI token quotas. This is not audited multi-tenant enterprise infrastructure.
