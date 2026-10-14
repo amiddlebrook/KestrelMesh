@@ -37,3 +37,10 @@ The application API protects all non-health endpoints with a Worker secret named
 ## Limitations
 
 This is a scoped, functional MVP with a single privileged admin token; no SSO, formal audit certification, high availability promises, payment integrations, or large-model training. Run benchmarks before publishing performance claims.
+
+## Engineering expansion — October 2026
+
+- Persisted per-model circuit breakers with 60-second recovery and operator audit.
+- Failed-provider exclusion during route selection and failure/recovery traces.
+
+These are verifiable domain-specific features, **not** a claim of production maturity, SOC-2 certification, multi-tenant isolation, or unlimited free inference.

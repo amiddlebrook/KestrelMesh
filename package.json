@@ -6,10 +6,11 @@
   "scripts": {
     "dev": "wrangler dev",
     "check": "tsc --noEmit && node --check public/app.js && node --check public/config.js",
-    "test": "node scripts/compile-tests.mjs && node --test tests/smoke.test.mjs",
+    "test": "node scripts/compile-tests.mjs && node --test tests/smoke.test.mjs tests/integration.test.mjs tests/advanced.test.mjs",
     "db:local": "wrangler d1 migrations apply DB --local",
     "db:remote": "wrangler d1 migrations apply DB --remote",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "verify:live": "node scripts/verify-deployment.mjs"
   },
   "devDependencies": {
     "typescript": "^5.9.0",

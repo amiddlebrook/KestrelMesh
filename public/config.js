@@ -2,7 +2,7 @@ export default {
   "name": "KestrelMesh",
   "tagline": "AI inference routing and telemetry",
   "accent": "#d0b082",
-  "icon": "⟐",
+  "icon": "\u27d0",
   "sections": [
     {
       "id": "models",
@@ -99,6 +99,35 @@ export default {
       "id": "metrics",
       "label": "Performance",
       "custom": "metrics"
+    },
+    {
+      "id": "circuits",
+      "label": "Circuit Breakers",
+      "endpoint": "/api/circuits",
+      "columns": [
+        "model",
+        "effective_state",
+        "consecutive_failures",
+        "opened_until",
+        "updated_at"
+      ],
+      "action": {
+        "title": "Reset circuit breaker",
+        "endpoint": "/api/circuits/{id}/reset",
+        "input": []
+      }
+    },
+    {
+      "id": "circuit-events",
+      "label": "Circuit Transitions",
+      "endpoint": "/api/circuit-events",
+      "columns": [
+        "model",
+        "from_state",
+        "to_state",
+        "reason",
+        "created_at"
+      ]
     }
   ]
 };

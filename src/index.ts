@@ -1,3 +1,5 @@
+import {disabledByCircuit,recordCircuit} from './advanced';
+import { advancedApi } from './advanced';
 import { withApi, body, first, list, execute, uid, now, json, required, oneOf, fail, limit, count, type Env } from './core';
 type Model={id:string;name:string;provider:'fixture'|'workers_ai';model_ref:string;priority:number;enabled:number};
 type Route={id:string;match_prefix:string;model_id:string};
@@ -23,6 +25,7 @@ async function infer(env:Env,model:Model,prompt:string):Promise<string>{
 }
 export async function api(req:Request,env:Env,url:URL):Promise<Response>{
  const p=url.pathname,m=req.method;
+  const enhanced=await advancedApi(req,env,url); if(enhanced) return enhanced;
  if(p==='/api/overview'&&m==='GET') {const [models,reqs,errors]=await Promise.all([first<{n:number}>(env,'SELECT count(*) n FROM models'),first<{n:number}>(env,'SELECT count(*) n FROM requests'),first<{n:number}>(env,"SELECT count(*) n FROM requests WHERE status='failed'")]);return json({metrics:[{label:'Registered models',value:count(models)},{label:'Inference requests',value:count(reqs)},{label:'Errors',value:count(errors)},{label:'p95 latency (ms)',value:(await metrics(env)).p95_ms??'—'}],recent:await list(env,'SELECT * FROM requests ORDER BY created_at DESC LIMIT 8')})}
  if(p==='/api/models'&&m==='GET')return json({items:await list(env,'SELECT * FROM models ORDER BY priority ASC,created_at DESC LIMIT ?',limit(url))});
  if(p==='/api/models'&&m==='POST'){const b=await body(req),id=uid(),provider=oneOf(b.provider,['fixture','workers_ai'],'provider');const ref=provider==='fixture'?'fixture':oneOf(b.model_ref,ALLOWED_MODELS,'model_ref');await execute(env,'INSERT INTO models VALUES(?,?,?,?,?,?,?)',id,required(b.name,'name'),provider,ref,Math.max(1,Math.min(100,Number(b.priority)||10)),1,now());return json({id},201)}
@@ -31,14 +34,14 @@ export async function api(req:Request,env:Env,url:URL):Promise<Response>{
  if(p==='/api/rules'&&m==='POST'){const b=await body(req),id=uid(),target=await first<Model>(env,'SELECT * FROM models WHERE id=?',required(b.model_id,'model_id'));if(!target)fail(404,'Model not found');await execute(env,'INSERT INTO routing_rules VALUES(?,?,?,?,?)',id,required(b.name,'name'),required(b.match_prefix,'match_prefix',60),target.id,now());return json({id},201)}
  if(p==='/api/route-preview'&&m==='POST'){const b=await body(req);const choice=chooseModel(await list<Model>(env,'SELECT * FROM models'),required(b.task,'task'),await list<Route>(env,'SELECT * FROM routing_rules'));return json({model:choice,reason:choice?'Enabled routing rule or lowest priority':'No enabled models'})}
  if(p==='/api/infer'&&m==='POST'){
-  const b=await body(req),task=required(b.task,'task',3000);const models=await list<Model>(env,'SELECT * FROM models');const target=chooseModel(models,task,await list<Route>(env,'SELECT * FROM routing_rules'));if(!target)fail(409,'Register or enable an inference model first');
+  const b=await body(req),task=required(b.task,'task',3000);const models=await list<Model>(env,'SELECT * FROM models');const open=await disabledByCircuit(env);const eligible=models.filter(model=>!open.has(model.id));const target=chooseModel(eligible,task,await list<Route>(env,'SELECT * FROM routing_rules'));if(!target)fail(409,'Register or enable an inference model first');
   const key=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(target.id+'\n'+task));const cacheKey=Array.from(new Uint8Array(key)).map(c=>c.toString(16).padStart(2,'0')).join('');
   const hit=await first<{response:string}>(env,'SELECT response FROM response_cache WHERE key=? AND expires_at>?',cacheKey,now());const id=uid();if(hit){await execute(env,'INSERT INTO requests VALUES(?,?,?,?,?,?,?,?,?,?)',id,target.id,task.slice(0,180),'completed',0,task.length,hit.response.length,1,now(),'');return json({id,model:target.name,response:hit.response,cache_hit:true,latency_ms:0})}
   const start=Date.now();try {const output=await infer(env,target,task),latency=Date.now()-start;
-    await execute(env,'INSERT INTO requests VALUES(?,?,?,?,?,?,?,?,?,?)',id,target.id,task.slice(0,180),'completed',latency,task.length,output.length,0,now(),'');
+    await execute(env,'INSERT INTO requests VALUES(?,?,?,?,?,?,?,?,?,?)',id,target.id,task.slice(0,180),'completed',latency,task.length,output.length,0,now(),'');await recordCircuit(env,target.id,true);
     if(b.cache!==false){const expiry=new Date(Date.now()+Math.min(1440,Math.max(1,Number(b.ttl_minutes)||30))*60000).toISOString();await execute(env,'INSERT OR REPLACE INTO response_cache VALUES(?,?,?,?,?)',cacheKey,target.id,output,expiry,now())}
     return json({id,model:target.name,response:output,cache_hit:false,latency_ms:latency})
-  }catch(err){await execute(env,'INSERT INTO requests VALUES(?,?,?,?,?,?,?,?,?,?)',id,target.id,task.slice(0,180),'failed',Date.now()-start,task.length,0,0,now(),String(err).slice(0,300));throw err}
+  }catch(err){await execute(env,'INSERT INTO requests VALUES(?,?,?,?,?,?,?,?,?,?)',id,target.id,task.slice(0,180),'failed',Date.now()-start,task.length,0,0,now(),String(err).slice(0,300));await recordCircuit(env,target.id,false);throw err}
  }
  if(p==='/api/requests'&&m==='GET')return json({items:await list(env,'SELECT r.*,m.name model FROM requests r LEFT JOIN models m ON r.model_id=m.id ORDER BY r.created_at DESC LIMIT ?',limit(url))});
  if(p==='/api/metrics'&&m==='GET')return json(await metrics(env));
