@@ -2,7 +2,7 @@ name: Deploy to Cloudflare Workers
 on:
   push:
     branches: [main]
-  workflow_dispatch:
+  workflow_dispatch: {}
 permissions:
   contents: read
 concurrency:
@@ -23,16 +23,24 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Require Cloudflare credentials
+      - name: Require deployment secrets
+        env:
+          APP_ADMIN_TOKEN: ${{ secrets.APP_ADMIN_TOKEN }}
         run: |
-          test -n "$CLOUDFLARE_API_TOKEN" || { echo 'Missing CLOUDFLARE_API_TOKEN GitHub Actions secret'; exit 1; }
-          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo 'Missing CLOUDFLARE_ACCOUNT_ID GitHub Actions secret'; exit 1; }
-      - run: npm install --no-audit --no-fund
-      - run: npm run check
-      - run: npm test
-      - name: Provision D1 if needed, then migrate
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo 'Missing CLOUDFLARE_API_TOKEN secret'; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo 'Missing CLOUDFLARE_ACCOUNT_ID secret'; exit 1; }
+          test -n "$APP_ADMIN_TOKEN" || { echo 'Missing APP_ADMIN_TOKEN secret'; exit 1; }
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Typecheck
+        run: npm run check
+      - name: Run tests
+        run: npm test
+      - name: Provision and migrate D1
         run: bash scripts/bootstrap-d1.sh
-      - name: Deploy API and static site
+      - name: Deploy Worker and static assets
         run: npx wrangler deploy
-            - name: Configure protected API secret
-              run: printf "%s" "$APP_ADMIN_TOKEN" | npx wrangler secret put ADMIN_TOKEN
+      - name: Configure protected API secret
+        env:
+          APP_ADMIN_TOKEN: ${{ secrets.APP_ADMIN_TOKEN }}
+        run: printf '%s' "$APP_ADMIN_TOKEN" | npx wrangler secret put ADMIN_TOKEN
