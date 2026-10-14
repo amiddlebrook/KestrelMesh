@@ -27,7 +27,7 @@ All persistent data is stored in per-application D1. The application frontend an
 
 - `npm run check`: TypeScript strict-mode compilation and frontend syntax.
 - `npm test`: SQLite-backed integration tests using a deterministic Workers AI test adapter; never conflated with production provider responses.
-- `npm run verify:live`: health, static site, and unauthorized API contract after deployment.
+- `npm run verify:live`: health, authenticated D1 APIs, static site, and unauthorized API contract after deployment.
 - Provisioning script reuses D1 databases and applies migrations before each deployment.
 
 ## Design tradeoffs
