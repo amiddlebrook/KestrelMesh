@@ -1,3 +1,5 @@
+> **Phase 27:** Chromium desktop/mobile and authenticated browser acceptance now runs on every **live Cloudflare deployment**, with guest-only screenshots. See [production browser verification](docs/PHASE27_BROWSER_ACCEPTANCE.md).
+
 > **Phase 25 — $0 guardrails:** Daily protected API budgets, opt-in remote AI, fail-closed quotas and quota status. [Policy and limits](docs/ZERO_COST_POLICY.md).
 
 > **Phase 24:** Authenticated API integration regression tests and product-specific reliability safeguards. See [Phase 24 notes](docs/PHASE24_RELIABILITY_AND_SECURITY.md).

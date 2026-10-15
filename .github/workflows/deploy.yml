@@ -52,3 +52,22 @@ jobs:
           DEPLOY_URL: https://portfolio-kestrelmesh.averymiddlebrook2014.workers.dev
           APP_ADMIN_TOKEN: ${{ secrets.APP_ADMIN_TOKEN }}
         run: npm run verify:live
+      - name: Verify actual browser UX on deployed Cloudflare Worker
+        env:
+          DEPLOY_URL: https://portfolio-kestrelmesh.averymiddlebrook2014.workers.dev
+          APP_ADMIN_TOKEN: ${{ secrets.APP_ADMIN_TOKEN }}
+          APP_NAME: KestrelMesh
+          APP_PRIMARY_SECTION: routinglab
+          CHROME_BIN: google-chrome
+        run: |
+          command -v google-chrome
+          google-chrome --version
+          npm run verify:browser
+      - name: Upload public guest browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kestrelmesh-browser-acceptance
+          path: artifacts/browser/*-guest.png
+          retention-days: 7
+          if-no-files-found: ignore
