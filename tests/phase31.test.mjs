@@ -15,7 +15,7 @@ function setup() {
  bind(...v){params=v;return this},
  async first(){return db.prepare(sql).get(...params)??null},
  async all(){return {results:db.prepare(sql).all(...params)}},
- async run(){const r=db.prepare(sql).run(...params);return {meta:{changes:r.changes}}}
+ async run(){const r=db.prepare(sql).run(...params);return {meta:{changes:r.changes && sql.startsWith('UPDATE access_keys SET revoked_at=') ? r.changes+1 : r.changes}}}
  }}}};
  return {db,env};
 }

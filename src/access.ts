@@ -115,7 +115,8 @@ export async function accessApi(req:Request,env:Env,url:URL,principal:Principal)
     if (!row) fail(404,'Credential not found');
     if (row.revoked_at) fail(409,'Credential is already revoked');
     const result=await env.DB.prepare('UPDATE access_keys SET revoked_at=? WHERE id=? AND revoked_at IS NULL').bind(now(),row.id).run();
-    if ((result.meta?.changes??0)!==1) fail(409,'Credential was already revoked');
+    // D1 may count the UPDATE and its audit trigger; any positive count is success.
+    if ((result.meta?.changes??0)<1) fail(409,'Credential was already revoked');
     return json({revoked:true,id:row.id});
   }
   fail(404,'Unknown access management operation');

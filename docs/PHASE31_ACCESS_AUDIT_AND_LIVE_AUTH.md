@@ -16,3 +16,5 @@ The live check uses fewer than ten authenticated requests and no inference. It i
 ## Limits
 
 This verifies route-scoped, single-account credentials and immutable-by-trigger audit **coupling**, not tamper-evident logging, user identity management, or multitenant data isolation. Root administrators with direct D1 access can still alter audit rows. A cloud deployment failure or service outage is not eliminated by these tests.
+
+D1 can count both the credential update and its audit trigger in `meta.changes`; the revoke endpoint treats any positive update count as a committed transition.
