@@ -183,3 +183,7 @@ All authenticated record sections now support three layouts (cards, data grid, t
 ## Phase 11: Interactive record workbench (October 2026)
 
 All authenticated record sections now support three layouts (cards, data grid, timeline), real loaded-record state distributions, facet filtering, twelve-item pagination, multi-record comparison, protected CSV/JSON exports, and a modal inspector. Distinct domain visual systems remain intact. See [Record workbench design and security](docs/RECORD_WORKBENCH.md). Client-side list navigation operates only on rows returned by the existing API; full server cursor pagination is future work.
+
+
+### Phase 12: Spatial intelligence console
+The record workbench now includes **Spatial canvas** alongside card, grid and timeline views. The visualization is intentionally different in each application: workflow state lanes (RivetFlow), numeric evaluation plots (SignalBench), explicit evidence reference networks (ProofAtlas), explicit routing reference topology (KestrelMesh) and timestamped experiment chronology (GradientFoundry). Search, stable sorting, state drill-down and record inspection operate on authorized records returned by the current API response. No metrics or relationship edges are synthesized. Database-wide analytics, distributed tenancy and load testing remain out of scope for this release. See `docs/SPATIAL_CONSOLE.md`.
