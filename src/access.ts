@@ -45,6 +45,19 @@ export async function accessApi(req:Request,env:Env,url:URL,principal:Principal)
   if (!p.startsWith('/api/access/')) return null;
   if (principal.role!=='admin') fail(403,'Only the root administrator may manage credentials');
 
+  if(p==='/api/access/write-quota' && req.method==='GET') {
+    const bucket=Math.floor(Date.now()/60000);
+    const rows=await first<{active_identities:number;writes:number;root_writes:number}>(env,`SELECT COUNT(*) active_identities,
+      COALESCE(SUM(used),0) writes, COALESCE(SUM(CASE WHEN identity='root' THEN used ELSE 0 END),0) root_writes
+      FROM api_write_quota WHERE minute_bucket=?`,bucket);
+    return json({window_seconds:60,minute_bucket:bucket,root_limit:180,operator_limit:60,
+      active_identities:Number(rows?.active_identities??0),writes:Number(rows?.writes??0),root_writes:Number(rows?.root_writes??0),
+      note:'Only authenticated mutation attempts are counted. A rejected write consumes quota; reads do not. Best effort operational control, not DDoS protection.'});
+  }
+  if(p==='/api/access/write-quota/prune' && req.method==='POST') {
+    const {cleanupWriteQuota}=await import('./write-quota');
+    return json({pruned:await cleanupWriteQuota(env),retention_hours:24});
+  }
   if (p==='/api/access/insights' && req.method==='GET') {
     const current=now();
     const inSeven=new Date(Date.now()+7*86400000).toISOString();
