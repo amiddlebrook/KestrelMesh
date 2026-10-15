@@ -104,8 +104,14 @@ for(let attempt=1;attempt<=7;attempt++){
   assert.ok(missionCss.includes('15'),'Phase 15 product-specific flagship styling missing');
   const configJs=await (await check('/config.js',200)).text();
   assert.ok(configJs.includes('mission'),'Phase 15 flagship navigation missing');
+  const homeModule=await (await check('/home.js',200)).text();
+  assert.ok(homeModule.includes('renderHome') && homeModule.includes('/api/'),'Independent authenticated product homepage missing');
+  const homeCss=await (await check('/home.css',200)).text();
+  assert.ok(homeCss.length>3000,'Distinct Phase 16 homepage styling missing');
+  const frontend=await (await check('/app.js',200)).text();
+  assert.ok(frontend.includes("return validPages.has(id)?id:'overview'") && frontend.includes('renderHome'),'Homepage routing not deployed');
   const page=await check('/',200);
-  const html=await page.text(); assert.ok(html.includes('<html')||html.includes('<!doctype html>'),'HTML shell missing');assert.ok(html.includes('/lens.css') && html.includes('/mission.css'),'Phase 15 visual assets are not referenced by application');
+  const html=await page.text(); assert.ok(html.includes('<html')||html.includes('<!doctype html>'),'HTML shell missing');assert.ok(html.includes('/lens.css') && html.includes('/mission.css') && html.includes('/home.css'),'Phase 15 visual assets are not referenced by application');
   console.log(`Live deployment verified: ${origin} (health, D1 domain API, protected API, static site)`);
   process.exit(0);
  }catch(error){previous=error; if(attempt<7)await new Promise(r=>setTimeout(r,1200*attempt));}

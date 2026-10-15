@@ -1,3 +1,4 @@
+import {renderHome} from './home.js';
 import {renderMission} from './mission.js';
 import {renderAccessConsole} from './access-console.js';
 import {renderCatalog} from './catalog.js';
@@ -17,7 +18,7 @@ import app from './config.js';
 const root=document.getElementById('app');
 document.body.dataset.product=app.name.toLowerCase();
 const validPages=new Set(['overview','access',...app.sections.map(section=>section.id)]);
-const routeFromHash=()=>{try{const id=decodeURIComponent(location.hash.slice(1));return validPages.has(id)?id:'mission'}catch{return 'mission'}};
+const routeFromHash=()=>{try{const id=decodeURIComponent(location.hash.slice(1));return validPages.has(id)?id:'overview'}catch{return 'overview'}};
 let page=routeFromHash(),lastResult=null,notice='',noticeType='success';
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const pretty=x=>JSON.stringify(x,null,2);
@@ -49,7 +50,7 @@ function skeleton(){
  document.getElementById('refresh').onclick=()=>render();
  ui.hydrate();
 }
-function title(){document.querySelectorAll('[data-page]').forEach(b=>{const active=b.dataset.page===page;b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});const s=app.sections.find(s=>s.id===page);document.getElementById('page-title').textContent=s?.label||(page==='access'?'Access control':'Overview');document.getElementById('page-subtitle').textContent=page==='overview'?app.tagline:'Live data from your own Cloudflare D1 database';paintNotice()}
+function title(){document.body.classList.toggle('home-page',page==='overview');document.querySelectorAll('[data-page]').forEach(b=>{const active=b.dataset.page===page;b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});const s=app.sections.find(s=>s.id===page);document.getElementById('page-title').textContent=s?.label||(page==='access'?'Access control':'Network Terminal');document.getElementById('page-subtitle').textContent=page==='overview'?app.tagline:'Live data from your own Cloudflare D1 database';paintNotice()}
 async function fieldsHtml(fields){return (await Promise.all(fields.map(async f=>{
  const id='field-'+f.name;let field='';let def=f.default??'';
  if(f.type==='json'){field=`<textarea id="${id}" name="${f.name}" class="large" spellcheck="false">${esc(pretty(def||{}))}</textarea>`}
@@ -119,7 +120,8 @@ async function renderList(spec){
   if(form)form.onsubmit=async event=>{event.preventDefault();try{const args=readForm(form,spec.fields),output=await api(spec.endpoint,'POST',args);success('Created '+(output.id||'record'));render()}catch(e){error(e)}};
  }catch(e){content.innerHTML=panel('Unable to load data',`<p>${esc(e.message)}</p><p class="muted">Verify workspace credentials and apply local or remote D1 migrations.</p>`)}
 }
-async function overview(){
+async function overview(){await renderHome({root:document.getElementById('content'),api,esc,go:id=>{if(!validPages.has(id))return;page=id;location.hash=id;render()}})}
+async function legacyOverview(){
  const content=document.getElementById('content');
  try{await renderExperience({root:content,api,esc,go:id=>{if(!validPages.has(id))return;page=id;location.hash=id;render()},success,error});
  const atlasEntry=document.createElement('div');atlasEntry.className='at-discover';atlasEntry.innerHTML=`<div><span>NEW / SPATIAL INTELLIGENCE</span><h3>Explore the connected workspace.</h3><p>Inspect verified relationships across four live data sources. No generated or fictional telemetry.</p></div><button type="button" id="at-open-from-overview">Open Live Atlas ↗</button>`;content.prepend(atlasEntry);atlasEntry.querySelector('button').onclick=()=>{page='atlas';location.hash=page;render()};}
