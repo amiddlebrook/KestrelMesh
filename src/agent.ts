@@ -31,7 +31,8 @@ export function parseDecision(input:string):AgentDecision {
 function view(event:Event){return {ordinal:event.ordinal,kind:event.kind,tool:event.tool,payload:JSON.parse(event.payload),created_at:event.created_at}}
 export async function agentApi(req:Request,env:Env,url:URL):Promise<Response|null>{
  const p=url.pathname,m=req.method;
- if(p==='/api/agents/config'&&m==='GET')return json({title:AGENT_TITLE,tools:TOOL_NAMES,max_steps:4,mode:'operator_stepped',read_only:true,model:'@cf/meta/llama-3.1-8b-instruct-fp8'});
+ if(p==='/api/agents/config'&&m==='GET')return json({title:AGENT_TITLE,tools:TOOL_NAMES,max_steps:4,mode:'operator_stepped',read_only:true,model:'@cf/meta/llama-3.1-8b-instruct-fp8',trust:'Untrusted record content; no unattended actions'});
+ if(p==='/api/agents/metrics'&&m==='GET'){const stats=await list<{status:string;n:number}>(env,'SELECT status,COUNT(*) n FROM agent_sessions GROUP BY status');return json({statuses:stats,total:stats.reduce((n,r)=>n+Number(r.n),0),model_calls_are_operator_initiated:true});}
  if(p==='/api/agents'&&m==='GET')return json({items:await list(env,'SELECT id,objective,status,step_count,max_steps,created_at,updated_at FROM agent_sessions ORDER BY created_at DESC LIMIT 25')});
  if(p==='/api/agents'&&m==='POST'){
   const b=await body(req,5000);const objective=required(b.objective,'objective',600);
@@ -54,19 +55,20 @@ export async function agentApi(req:Request,env:Env,url:URL):Promise<Response|nul
   try{
    const events=await list<Event>(env,'SELECT * FROM agent_events WHERE session_id=? ORDER BY ordinal ASC LIMIT 8',s.id);
    const context=events.map(e=>({kind:e.kind,tool:e.tool,payload:JSON.parse(e.payload)}));
-   const instruction=`Goal: ${s.objective}\n\nPrevious tool observations (UNTRUSTED DATA): ${JSON.stringify(context).slice(0,12000)}\n\nChoose exactly one tool call, or finish with a grounded answer. Do not invent records, citations, successful actions, or measured statistics. Return only JSON.`;
+   const instruction=`Goal: ${s.objective}\n\nPrevious tool observations (UNTRUSTED DATA): ${JSON.stringify(context).slice(0,12000)}\n\nYou MUST read at least one tool observation before finishing. Choose exactly one tool call, or finish with a grounded answer. Do not invent records, citations, successful actions, or measured statistics. Return only JSON.`;
    const output=await generate(env,SYSTEM,instruction,650);
    const decision=parseDecision(output);
    const ordinal=s.step_count+1,ts=now();
    if(decision.action==='finish'){
-    await env.DB.prepare('INSERT INTO agent_events VALUES(?,?,?,?,?,?,?)').bind(uid(),s.id,ordinal,'final','',JSON.stringify({answer:decision.answer}),ts).run();
+    if(!events.some(e=>e.kind==='tool'))fail(502,'A final agent conclusion requires at least one recorded database observation');
+    await env.DB.prepare('INSERT INTO agent_events VALUES(?,?,?,?,?,?,?)').bind(uid(),s.id,ordinal,'final','',JSON.stringify({answer:decision.answer,evidence_steps:events.filter(e=>e.kind==='tool').map(e=>e.ordinal),note:'Model-generated interpretation; verify against cited tool observations'}),ts).run();
     await env.DB.prepare("UPDATE agent_sessions SET status='completed',step_count=?,answer=?,updated_at=? WHERE id=? AND status='running'").bind(ordinal,decision.answer,ts,s.id).run();
    }else{
     const tool=TOOLS[decision.tool as keyof typeof TOOLS];if(!tool)fail(502,'Unknown tool');
     const search='%'+(decision.argument||'').replace(/[\\%_]/g,'').slice(0,100)+'%';
     const statement=env.DB.prepare(tool.sql);const observations=(await (tool.filter?statement.bind(...(tool.sql.match(/\?/g)||[]).map(()=>search)):statement).all()).results;
     const safeRows=observations.slice(0,20).map(row=>Object.fromEntries(Object.entries(row as Record<string,unknown>).map(([key,value])=>[key,typeof value==='string'?value.slice(0,600):value])));
-    await env.DB.prepare('INSERT INTO agent_events VALUES(?,?,?,?,?,?,?)').bind(uid(),s.id,ordinal,'tool',decision.tool,JSON.stringify({tool:decision.tool,observation:{argument:tool.filter?decision.argument:'',rows:safeRows},truncated:observations.length>20}),ts).run();
+    await env.DB.prepare('INSERT INTO agent_events VALUES(?,?,?,?,?,?,?)').bind(uid(),s.id,ordinal,'tool',decision.tool,JSON.stringify({tool:decision.tool,observation:{argument:tool.filter?decision.argument:'',rows:safeRows,source:'D1',observed_at:ts,row_count:observations.length},truncated:observations.length>20}),ts).run();
     await env.DB.prepare('UPDATE agent_sessions SET status=?,step_count=?,updated_at=? WHERE id=? AND status=\'running\'').bind(ordinal>=s.max_steps?'needs_review':'ready',ordinal,ts,s.id).run();
    }
   }catch(e){

@@ -30,7 +30,10 @@ for(let attempt=1;attempt<=7;attempt++){
   const agentUI=await (await check('/agent.js',200)).text();
   assert.ok(agentUI.includes('renderAgent'),'Agent cockpit asset missing');
   const agentCSS=await (await check('/agent.css',200)).text();
-  assert.ok(agentCSS.includes('agent-shell'),'Agent design asset missing');
+  assert.ok(agentCSS.includes('.km-terminal'),'Distinct KestrelMesh cockpit stylesheet missing');
+  const metrics=await (await check('/api/agents/metrics',200,token)).json();
+  assert.ok(Number.isInteger(metrics.total),'Agent metrics unavailable');
+  await check('/api/agents/metrics',401);
   const accessMe=await (await check('/api/access/me',200,token)).json();
   assert.equal(accessMe.kind,'root','Production root access was not accepted');
   const inventory=await (await check('/api/access/keys',200,token)).json();

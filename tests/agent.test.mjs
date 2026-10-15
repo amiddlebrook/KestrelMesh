@@ -12,3 +12,24 @@ test('persists goal, database observation, and final result across explicit step
 test('rejects concurrent execution, overspending, and dangerous tool choices',async()=>{const {db,env}=fixture([JSON.stringify({action:'tool',tool:TOOL_NAMES[0]}),JSON.stringify({action:'tool',tool:'exec'} )]);try{await assert.rejects(call(env,'/api/agents','POST',{objective:'investigate',max_steps:99}),/budget/);const {id}=await (await call(env,'/api/agents','POST',{objective:'check SLO budgets',max_steps:1})).json();const claim=await env.DB.prepare("UPDATE agent_sessions SET status='running' WHERE id=?").bind(id).run();assert.equal(claim.meta.changes,1);await assert.rejects(call(env,`/api/agents/${id}/advance`,'POST',{}),/not ready/);await env.DB.prepare("UPDATE agent_sessions SET status='ready' WHERE id=?").bind(id).run();const step=await (await call(env,`/api/agents/${id}/advance`,'POST',{})).json();assert.equal(step.session.status,'needs_review');await assert.rejects(call(env,`/api/agents/${id}/advance`,'POST',{}),/not ready/);const {id:invalidId}=await (await call(env,'/api/agents','POST',{objective:'Unauthorized tool test'})).json();await assert.rejects(call(env,`/api/agents/${invalidId}/advance`,'POST',{}),/unapproved tool/);const failed=await (await call(env,`/api/agents/${invalidId}`)).json();assert.equal(failed.session.status,'failed')}finally{db.close()}});
 
 test('interrupted runs can be marked failed without replay, but only after timeout',async()=>{const {db,env}=fixture();try{const {id}=await (await call(env,'/api/agents','POST',{objective:'Check provider status'})).json();await env.DB.prepare("UPDATE agent_sessions SET status='running' WHERE id=?").bind(id).run();await assert.rejects(call(env,`/api/agents/${id}/recover`,'POST',{}),/five minutes/);await env.DB.prepare("UPDATE agent_sessions SET updated_at='2020-01-01' WHERE id=?").bind(id).run();const result=await (await call(env,`/api/agents/${id}/recover`,'POST',{})).json();assert.equal(result.replayed,false);const state=await (await call(env,`/api/agents/${id}`)).json();assert.equal(state.session.status,'failed')}finally{db.close()}});
+
+test('all advertised tools execute real read-only D1 queries',async()=>{
+ for(const tool of TOOL_NAMES){
+  const {db,env}=fixture([JSON.stringify({action:'tool',tool,argument:'risk'})]);
+  try{const {id}=await (await call(env,'/api/agents','POST',{objective:'Find source data'})).json();
+   const step=await (await call(env,`/api/agents/${id}/advance`,'POST',{})).json();
+   assert.equal(step.session.status,'ready');
+   assert.equal(step.events[0].payload.observation.source,'D1');
+   assert.equal(step.events[0].payload.observation.row_count,0);
+  }finally{db.close()}
+ }
+});
+test('agent refuses unobserved conclusions and exposes genuine persisted metrics',async()=>{
+ const {db,env}=fixture([JSON.stringify({action:'finish',answer:'Everything is fine'})]);
+ try{const {id}=await (await call(env,'/api/agents','POST',{objective:'Check quality'})).json();
+  await assert.rejects(call(env,`/api/agents/${id}/advance`,'POST',{}),/requires at least one recorded database observation/);
+  const state=await (await call(env,`/api/agents/${id}`)).json();assert.equal(state.session.status,'failed');
+  const metrics=await (await call(env,'/api/agents/metrics')).json();assert.equal(metrics.total,1);
+  assert.equal(metrics.statuses[0].status,'failed');
+ }finally{db.close()}
+});

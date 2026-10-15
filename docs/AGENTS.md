@@ -9,7 +9,7 @@ This is a genuine, **bounded AI reasoning loop** powered by Cloudflare Workers A
 3. `POST /api/agents/:id/advance` claims the session using an atomic state transition (`ready → running`). Concurrent calls receive `409`.
 4. Workers AI selects an allowlisted read-only tool or a final answer using a strictly validated JSON decision. No generated SQL, arbitrary URLs, system commands, filesystem operations, or writes are allowed.
 5. The Worker runs one database read and stores the observation in D1; the operator can advance again. The budget is enforced server-side.
-6. The model may finalize based on observed records. If the budget is exhausted before finalizing, the run enters `needs_review`, not `completed`.
+6. The model must read at least one database observation before a final answer is accepted. The final event references the ordinal numbers of its evidence tool steps. The model may finalize based on observed records. If the budget is exhausted before finalizing, the run enters `needs_review`, not `completed`.
 
 ## Permitted tools
 
@@ -34,3 +34,7 @@ This is a genuine, **bounded AI reasoning loop** powered by Cloudflare Workers A
 - `POST /api/agents/:id/advance` — one operator-controlled model decision
 - `POST /api/agents/:id/abandon` — explicitly archive nonrunning runs
 - `POST /api/agents/:id/recover` — mark a running session older than five minutes failed **without replay**
+
+- `GET /api/agents/metrics` — persisted run states, not invented model-usage analytics
+
+Agent conclusions are **interpretations, not attestations**. This release does not provide independent factual verification, supervised policy execution or enterprise identity.
