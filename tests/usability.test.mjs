@@ -22,7 +22,7 @@ test('mobile touch targets, focus, reduced motion and scroll strategy',()=>{
  assert.ok(css.includes('max-height:calc(100dvh'));
 });
 test('product styles use minimum 13px readable microtype with explicit scale',()=>{
- const files=readdirSync(pub.pathname).filter(f=>f.endsWith('.css')&&f!=='usability.css');
+ const files=[...read('index.html').matchAll(/href="\/([^"]+\.css)"/g)].map(m=>m[1]).filter(f=>f!=='usability.css');
  for(const file of files){const raw=read(file);const rx=/(?:font|font-size)\s*:\s*([^;{}]+)/g;for(const [,val] of raw.matchAll(rx)){
   // Legacy glyph sizing and declarative clamp values are excluded from microtype test.
   const matches=[...val.matchAll(/(?<![\w-])(\d*\.?\d+)px(?![\w-])/g)];
