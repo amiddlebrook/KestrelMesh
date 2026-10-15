@@ -1,3 +1,4 @@
+import {mountSavedViews} from './saved-views.js';
 import {renderAgent} from './agent.js';
 import {renderDecision} from './decision.js';
 import { renderStudio } from './studio.js';
@@ -87,6 +88,7 @@ async function renderList(spec){const content=document.getElementById('content')
      success(`Exported ${visible.length} currently loaded records. Treat the download as private workspace data.`);
    });
    updateView();
+   await mountSavedViews({product:app.name,section:spec.id,api,search,preset,order,apply:updateView,report:message=>{notice=message;noticeType='success';paintNotice()}});
   const form=document.getElementById('create-form');if(form)form.onsubmit=async ev=>{ev.preventDefault();try{const args=readForm(form,spec.fields);const out=await api(spec.endpoint,'POST',args);success('Created '+(out.id||'record'));render()}catch(e){error(e)}};
  }catch(e){content.innerHTML=panel('Unable to load data',`<p>${esc(e.message)}</p><p class="muted">Run local D1 migrations first. For deployment, configure the ADMIN_TOKEN Worker secret.</p>`)}
 }
