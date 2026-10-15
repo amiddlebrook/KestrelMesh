@@ -199,3 +199,7 @@ Open **Records Explorer** in the sidebar. It queries `/api/catalog` via the exis
 ### Phase 14 · Access Intelligence
 
 Root-only credential governance now includes `/api/access/insights` with seven-day expiry monitoring, permission-scope distribution, and a dedicated interactive Security Access workspace. Keys remain one-time revealed and D1-scoped; this release **does not implement multi-tenant data isolation**. See [Access Intelligence](docs/ACCESS_INTELLIGENCE.md).
+
+## Phase 16 · Independent homepage
+
+A separately designed, API-backed **Network Terminal** opens at `/#overview`, while `/#mission` preserves the previous specialized workspace. See [Homepage system](docs/HOMEPAGE_SYSTEM.md).
