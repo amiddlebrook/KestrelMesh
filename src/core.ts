@@ -80,8 +80,9 @@ export async function withApi(req: Request, env: Env, fn: Handler): Promise<Resp
    const managed=await access.accessApi(req,env,url,principal);
    const operations=await import('./operations');
    const review=await import('./agent-review');
+   const catalog=await import('./catalog');
    const views=await import('./views');
-   response=managed || await views.viewsApi(req,env,url,principal) || await review.agentReviewApi(req,env,url,principal) || await operations.operationsApi(req,env,url,principal) || await fn(req,env,url);
+   response=managed || await catalog.catalogApi(req,env,url) || await views.viewsApi(req,env,url,principal) || await review.agentReviewApi(req,env,url,principal) || await operations.operationsApi(req,env,url,principal) || await fn(req,env,url);
   } catch(error) {
    if(error instanceof HttpError)response=json({error:error.message},error.status);
    else {console.error('Request error',requestId,error);response=json({error:'Internal server error'},500);}

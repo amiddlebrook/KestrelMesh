@@ -72,6 +72,17 @@ for(let attempt=1;attempt<=7;attempt++){
   assert.ok(opsStyles.includes('.ops-shell'),'Operations journal styling missing');
   const studioStyles=await (await check('/studio.css',200)).text();
   assert.ok(studioStyles.length>1500,'Specialized studio stylesheet missing');
+  await check('/api/catalog',401);
+  const catalogIndex=await (await check('/api/catalog',200,token)).json();
+  assert.ok(Array.isArray(catalogIndex.collections) && catalogIndex.collections.length>=4,'Phase 13 D1 allowlisted registry missing');
+  const firstCatalog=catalogIndex.collections[0].id;
+  const liveCatalog=await (await check('/api/catalog/'+encodeURIComponent(firstCatalog)+'?size=10',200,token)).json();
+  assert.ok(Array.isArray(liveCatalog.items) && Number.isInteger(liveCatalog.total) && liveCatalog.page_size===10,'Phase 13 server-side D1 pagination missing');
+  await check('/api/catalog/'+encodeURIComponent(firstCatalog),401);
+  const registryAsset=await (await check('/catalog.js',200)).text();
+  assert.ok(registryAsset.includes('renderCatalog') && registryAsset.includes('next_cursor'),'Phase 13 server-backed explorer missing');
+  const catalogStyle=await (await check('/catalog.css',200)).text();
+  assert.ok(catalogStyle.includes('.cat-explorer'),'Phase 13 custom explorer stylesheet missing');
   const lensJs=await (await check('/lens.js',200)).text();
   assert.ok(lensJs.includes('createRecordWorkbench') && lensJs.includes('csvOf'),'Phase 11 interactive record workbench not deployed');
   const atlasJs=await (await check('/atlas.js',200)).text();
