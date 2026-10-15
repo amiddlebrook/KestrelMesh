@@ -1,3 +1,4 @@
+import {renderAccessConsole} from './access-console.js';
 import {renderCatalog} from './catalog.js';
 import {renderAtlas,disposeAtlas} from './atlas.js';
 import {createRecordWorkbench} from './lens.js';
@@ -144,37 +145,7 @@ async function custom(spec){const el=document.getElementById('content');
  const seed=document.createElement('button');seed.className='btn secondary';seed.textContent='Create sample dataset + experiment';el.prepend(seed);seed.onclick=async()=>{try{await api('/api/seed','POST',{});success('Example created')}catch(e){error(e)}};
  }
 }
-async function renderAccess(){
- const where=document.getElementById('content');
- where.innerHTML=panel('Access control',`<p class="muted">Loading credential policy and key inventory…</p>`);
- try {
-  const me=await api('/api/access/me');
-  const root=me.kind==='root';
-  if(!root){where.innerHTML=panel('Your credential',`<p>Authenticated as <b>${esc(me.label)}</b> · ${esc(me.role)}. Only the root administrator can issue and revoke keys.</p><p class="muted">Scope: <code>${esc(me.route_prefix)}</code></p>`);return;}
-  const [keys,audit]=await Promise.all([api('/api/access/keys'),api('/api/access/audit')]);
-  where.innerHTML=panel('Issue a scoped API key',`<form id="credential-form"><div class="field"><label for="key-label">Purpose / label</label><input name="label" id="key-label" maxlength="100" placeholder="Analyst read-only" required /></div><div class="field"><label for="key-role">Role</label><select name="role" id="key-role"><option value="viewer">Viewer · read-only</option><option value="operator">Operator · read/write, no DELETE</option></select></div><div class="field"><label for="key-prefix">API route prefix</label><input name="route_prefix" id="key-prefix" value="/api/" required pattern="/api/.*" /></div><div class="field"><label for="key-days">Expires after days (1–90)</label><input name="expires_in_days" id="key-days" type="number" min="1" max="90" value="30" required /></div><button class="btn" type="submit">Issue one-time credential</button></form><div id="credential-created" aria-live="polite"></div>`,`<small>Root token required</small>`)+
-   panel('Active and revoked credentials',table(keys.items||[],['label','role','route_prefix','created_at','expires_at','revoked_at','last_used_at'],false)+`<div id="credential-actions"></div>`)+
-   panel('Credential audit',table((audit.items||[]).slice(0,35),['action','subject_id','actor_id','created_at']));
-  const form=document.getElementById('credential-form');
-  form.onsubmit=async e=>{e.preventDefault();try{
-   const payload={label:form.elements.label.value,role:form.elements.role.value,route_prefix:form.elements.route_prefix.value,expires_in_days:Number(form.elements.expires_in_days.value)};
-   const created=await api('/api/access/keys','POST',payload);
-   const slot=document.getElementById('credential-created');
-   slot.replaceChildren();
-   const heading=document.createElement('p');heading.textContent='New credential — save now. This is the only time it will be shown.';
-   const secret=document.createElement('textarea');secret.readOnly=true;secret.rows=3;secret.value=created.token;secret.setAttribute('aria-label','One-time API key');
-   const copy=document.createElement('button');copy.type='button';copy.className='btn secondary';copy.textContent='Copy credential';copy.onclick=async()=>{try{await navigator.clipboard.writeText(created.token);success('Credential copied to clipboard. Store it securely.')}catch{secret.select();success('Select and copy the credential manually.')}};
-   slot.append(heading,secret,copy);success('Scoped credential issued. Reload this panel after saving the token to see the updated inventory.');
-  }catch(ex){error(ex)}};
-  const section=document.getElementById('credential-actions');
-  const active=(keys.items||[]).filter(k=>!k.revoked_at);
-  for(const key of active){const row=document.createElement('div');row.className='field';
-   const label=document.createElement('span');label.textContent=`${key.label} · ${key.role} · ${key.id.slice(0,8)}`;
-   const revoke=document.createElement('button');revoke.className='btn secondary small';revoke.textContent='Revoke';revoke.onclick=async()=>{if(!confirm(`Revoke credential "${key.label}" immediately?`))return;try{await api(`/api/access/keys/${encodeURIComponent(key.id)}/revoke`,'POST',{});success('Credential revoked');await renderAccess()}catch(ex){error(ex)}};
-   row.append(label,revoke);section.appendChild(row);
-  }
- }catch(ex){where.innerHTML=panel('Access control unavailable',`<p>${esc(ex.message)}</p><p class="muted">Sign in with your root ADMIN_TOKEN. Delegated credentials may be restricted to other API routes.</p>`)}
-}
+async function renderAccess(){return renderAccessConsole({root:document.getElementById('content'),api,success,error,product:app.name});}
 
 async function render(){disposeAtlas();skeleton();title();const spec=app.sections.find(s=>s.id===page);try{if(page==='overview')await overview();else if(page==='registry')await renderCatalog({root:document.getElementById('content'),api,esc,product:app.name,report:success});else if(page==='atlas')await renderAtlas({root:document.getElementById('content'),app,api,esc,go:id=>{if(!validPages.has(id))return;page=id;location.hash=id;render()},report:success});else if(page==='studio')await renderStudio({root:document.getElementById('content'),api,esc,go:id=>{if(!validPages.has(id))return;page=id;location.hash=id;render()},success,error});else if(page==='access')await renderAccess();else if(page==='agent')await renderAgent({root:document.getElementById('content'),api,esc,success,error});else if(page==='decisions')await renderDecision({root:document.getElementById('content'),api,esc,success,error});else if(page==='ops')await renderOperations({root:document.getElementById('content'),api,esc,success,error});else if(spec?.custom)await custom(spec);else if(spec){await renderList(spec);try{await enrichSection({root:document.getElementById('content'),page,api,esc,success,error})}catch(e){console.warn('Workspace enhancement unavailable',e)}};}catch(e){error(e)}}
 addEventListener('hashchange',()=>{const target=routeFromHash();if(target!==page){page=target;render()}});
