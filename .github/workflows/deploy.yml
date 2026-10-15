@@ -20,6 +20,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: npm
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -31,7 +32,9 @@ jobs:
           test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo 'Missing CLOUDFLARE_ACCOUNT_ID'; exit 1; }
           test -n "$APP_ADMIN_TOKEN" || { echo 'Missing APP_ADMIN_TOKEN'; exit 1; }
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
+      - name: Validate committed dependency graph and all D1 migrations
+        run: npm run verify:release
       - name: Check TypeScript and frontend
         run: npm run check
       - name: Test application contracts

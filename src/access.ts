@@ -45,6 +45,12 @@ export async function accessApi(req:Request,env:Env,url:URL,principal:Principal)
   if (!p.startsWith('/api/access/')) return null;
   if (principal.role!=='admin') fail(403,'Only the root administrator may manage credentials');
 
+  if(p==='/api/access/maintenance' && req.method==='GET') {
+    const row=await first<{ran_at:string;rows_pruned:number}>(env,
+      'SELECT ran_at,rows_pruned FROM maintenance_status WHERE job=?','write-quota');
+    return json({schedule:'0 4 * * *',timezone:'UTC',last_run:row?.ran_at??null,rows_pruned:Number(row?.rows_pruned??0),
+      retention_hours:24,status:row?'reported':'not_yet_run'});
+  }
   if(p==='/api/access/write-quota' && req.method==='GET') {
     const bucket=Math.floor(Date.now()/60000);
     const rows=await first<{active_identities:number;writes:number;root_writes:number}>(env,`SELECT COUNT(*) active_identities,
