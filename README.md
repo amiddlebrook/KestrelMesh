@@ -1,238 +1,140 @@
-> **Phase 30:** Deployments now fail on repository/Worker/D1 identity mismatch before migrations. This is a single-application deployment guard, not multitenant SSO. See [deployment boundaries](docs/PHASE30_DEPLOYMENT_BOUNDARIES.md).
-
-> **Phase 29:** Offline SQLite/D1-schema disaster-recovery rehearsal is enforced in both GitHub CI and deployment; live production D1 restoration is still unverified. See [recovery assurance](docs/PHASE29_RECOVERY_ASSURANCE.md).
-
-> **Phase 28:** Circuit-failure counts and transition audit are now a single SQLite transaction. See [atomic circuit recovery](docs/PHASE28_ATOMIC_CIRCUITS.md).
-
-> **Phase 27:** Chromium desktop/mobile and authenticated browser acceptance now runs on every **live Cloudflare deployment**, with guest-only screenshots. See [production browser verification](docs/PHASE27_BROWSER_ACCEPTANCE.md).
-
-> **Phase 25 — $0 guardrails:** Daily protected API budgets, opt-in remote AI, fail-closed quotas and quota status. [Policy and limits](docs/ZERO_COST_POLICY.md).
-
-> **Phase 24:** Authenticated API integration regression tests and product-specific reliability safeguards. See [Phase 24 notes](docs/PHASE24_RELIABILITY_AND_SECURITY.md).
-
-> **Phase 23:** Balanced product-specific interface with purposeful action/status/data colors. Token-free routing replay with synthetic traffic presets and comparisons of consecutive routing decisions. Existing history and workflows retained; fully authenticated browser release review remains outstanding.
-
-> **Phase 17:** The home route now opens into an interactive product-specific workspace (not a marketing hero). Without credentials, the homepage uses visibly labeled illustrative demo records; connecting an API key unlocks private D1 data. All previous tools remain available.
+<div align="center">
 
 # KestrelMesh
 
-> **Phase 26:** Free-only fallback planner — additional first-class product workflow and automated acceptance tests, while retaining free-tier fail-closed defaults. See [Phase 26 notes](docs/PHASE26_PRODUCT_WORKFLOWS.md).
+### Keep failures from becoming outages.
 
-> **Phase 12: Live Atlas** — A production-deployed, authenticated spatial intelligence view using only records from the existing Workers/D1 APIs, unique entity-specific graph layouts, inspector, keyboard controls, responsive pan/zoom, layer filtering, and privacy-conscious export. [Interaction architecture and limitations](docs/SPATIAL_ATLAS.md).
+Policy-driven inference routing with failure isolation.
 
-**Inference edge control plane · reliability engineering**  
-*Route requests predictably—even when models fail.*
+[![CI](https://github.com/amiddlebrook/KestrelMesh/actions/workflows/ci.yml/badge.svg)](https://github.com/amiddlebrook/KestrelMesh/actions/workflows/ci.yml) [![Cloudflare deployment](https://github.com/amiddlebrook/KestrelMesh/actions/workflows/deploy.yml/badge.svg)](https://github.com/amiddlebrook/KestrelMesh/actions/workflows/deploy.yml) [![MIT License](https://img.shields.io/badge/license-MIT-2381C5)](LICENSE) [![Zero mandatory cost](https://img.shields.io/badge/hosting-free--tier%20only-129E80)](docs/ZERO_COST_POLICY.md)
 
-[![CI checks](https://github.com/amiddlebrook/KestrelMesh/actions/workflows/ci.yml/badge.svg)](https://github.com/amiddlebrook/KestrelMesh/actions/workflows/ci.yml) [![Cloudflare deploy](https://github.com/amiddlebrook/KestrelMesh/actions/workflows/deploy.yml/badge.svg)](https://github.com/amiddlebrook/KestrelMesh/actions/workflows/deploy.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE) ![Cloudflare Workers](https://img.shields.io/badge/runtime-Cloudflare%20Workers-orange)
+**[Launch application](https://portfolio-kestrelmesh.averymiddlebrook2014.workers.dev)** · **[Watch the 20-second demo](docs/media/brag.mp4)** · [Architecture](docs/ARCHITECTURE.md) · [Security](docs/SECURITY.md) · [Roadmap](docs/ROADMAP.md)
 
-**[Launch live application](https://portfolio-kestrelmesh.averymiddlebrook2014.workers.dev)** · [Engineering architecture](docs/ARCHITECTURE.md) · [Security model](docs/SECURITY.md) · [Roadmap](docs/ROADMAP.md)
+[![KestrelMesh — animated product preview](docs/media/brag-preview.gif)](docs/media/brag.mp4)
 
-An edge inference gateway demonstration focused on **routing policy, failure isolation and recovery control**. KestrelMesh helps operators understand where requests go, what a provider failure means, and when a circuit should reopen.
+*The demo uses real public Cloudflare UI captures with illustrative guest-mode records. The animation is a product tour, not evidence of paid AI execution.*
 
-> **Project status — portfolio engineering application.** The interfaces, D1-backed APIs, tests, and automatic deployment are functional. This is **not** a certified or audited enterprise product, and there are no claims of SSO, multi-tenant isolation, unbounded free usage, or uptime SLAs.
+</div>
 
+---
 
-## Phase 15 — distinct flagship workspaces
+## The problem
 
-Telemetry Radar: latency scope, backend filters, threshold lens, circuit state and request inspector. The flagship is now the first screen. [Interface and security notes](docs/FLAGSHIP_WORKSPACE.md).
+The hardest part of edge telemetry radar is not drawing a dashboard—it is making consequential decisions inspectable, recoverable and accountable.
 
-## Decision workspace (Phase 8)
+**KestrelMesh** is an engineering platform for policy-driven inference routing and failure isolation. Its primary audience is **Infrastructure teams routing AI workloads within bounded budgets**. Preview model routes, inspect circuit state and rehearse safe fallbacks.
 
-A dedicated operational decision screen is available under **SLO Objectives**. This includes a real D1-backed API, validated writes and a product-specific interface; see [Decision workspace architecture](docs/DECISION_WORKSPACE.md).
+> [!IMPORTANT]
+> **Production-deployed engineering portfolio project, not an audited enterprise SaaS.** The Worker, D1-backed API, access-control tests and deployment checks are operational. Single-workspace database ownership is enforced. This is **not** multitenant SSO, third-party security certification, a validated production D1 restore, or an unlimited-cost-free SLA.
 
-## What makes it different
+## See it work
 
-- **Route preview.** Inspect routing decisions without invoking inference.
-- **Circuit isolation.** Persist open / half-open / closed provider state in D1.
-- **Guarded probes.** Atomic recovery leases limit concurrent half-open probes.
-- **Request and latency evidence.** Store request history, timing summaries and circuit events.
-- **Infrastructure UI.** Routing topology, telemetry and circuit operations console.
+[![Play the full demo video](docs/media/brag-poster.jpg)](docs/media/brag.mp4)
 
-## System design
+**[▶ Watch full MP4](docs/media/brag.mp4)** · **[↗ Try the live guest demo](https://portfolio-kestrelmesh.averymiddlebrook2014.workers.dev)** · [Storyboard and reproduction](docs/BRAG_DEMO.md)
+
+KestrelMesh starts with an illustrative, read-only guest experience. **Authenticated operations require the administrator's API credential**; the README does not publish or distribute access keys.
+
+### The end-to-end path
+
+1. Define model routing policies and eligibility.
+2. Preview a request without making a billable inference call.
+3. Inspect backend health and circuit-breaker state.
+4. Plan deterministic fallback when AI calls are unavailable.
+5. Record failure and audit transitions atomically; probe recovery within lease bounds.
+
+## Engineering highlights
+
+| Capability | Design decision |
+|---|---|
+| **Route preview** | Understand the selected backend without consuming inference quota. |
+| **Circuit isolation** | Atomic failure counters and durable audit transitions. |
+| **Recovery controls** | Half-open leases limit competing recovery probes. |
+| **Free-only operation** | AI calls off by default and bounded under explicit quota. |
+
+## Architecture
 
 ```mermaid
-flowchart TD
-  Client[Authorized API client] --> Gateway[Workers inference gateway]
-  Gateway --> Policy[(D1: routing rules)]
-  Gateway --> Circuit[(D1: breakers / leases)]
-  Circuit -->|eligible| Provider[Workers AI model]
-  Gateway --> Telemetry[(D1: request / latency events)]
-  Console[Edge operations console] --> Policy
-  Console --> Circuit
-  Console --> Telemetry
+flowchart LR
+  C[Authorized client] --> P[Routing policy]
+  P --> B[(D1 circuit state)]
+  B --> G{Eligible backend?}
+  G -->|yes, enabled| AI[Optional Workers AI]
+  G -->|no| F[Deterministic fallback]
+  AI --> T[(Telemetry + audit)]
+  F --> T
 ```
 
-**Core stack:** Cloudflare Workers (TypeScript), Cloudflare D1 (SQLite), static Workers assets (vanilla JavaScript/CSS), optional Workers AI binding, GitHub Actions CI/CD. Workers AI inference is quota-bound and some workflows do not require AI at all.
+**Frontend:** responsive JavaScript/CSS on Cloudflare Workers static assets.  
+**API:** TypeScript Cloudflare Worker with validated, scoped endpoints.  
+**Persistence:** a dedicated Cloudflare D1 database for this single-workspace application.  
+**Automation:** GitHub Actions for tests, migration integrity, live Cloudflare deployment, authenticated smoke checks and Chromium browser verification.  
+**AI inference:** optional Workers AI, disabled in production by default; budget enforced if deliberately enabled.
 
-**Critical domain path:** Request → route policy → circuit eligibility → supported model invocation → event / latency record → recovery policy.
+**The engineering emphasis:** Atomic circuit failure recording, half-open recovery leases, route simulation, policy exclusions, quota-bound provider calls and measured read-only latency checks.
 
-A single-account Workers AI gateway is **not** a multi-provider global inference mesh. The app does not claim guaranteed latency, universal cost savings or cross-region failover without load testing.
+## Run your own instance
 
-## Explore the currently published product
-
-**Current source:** The corresponding GitHub `main` branch is authoritative. The live deployment is separately verified by GitHub Actions after each push; local ZIP contents are not an independent deployment guarantee.
-
-
-Open **[KestrelMesh](https://portfolio-kestrelmesh.averymiddlebrook2014.workers.dev)**. Public visitors can inspect the branded, read-only product shell; actual database content and API operations require a credential. Each deployed application has **its own** D1 database, UI, API and release pipeline.
-
-1. Load the labeled demonstration model catalog and routing rules.
-2. Open the **Route Preview** to inspect the selected model without a real provider call.
-3. Examine latency and request histories from actual recorded requests.
-4. Inspect circuit-breaker state and guarded half-open recovery diagnostics.
-
-The sample data is intentionally synthetic. UI counters reflect database records; screenshots, marketing claims and production-scale benchmarks are not fabricated.
-
-## Run locally
-
-**Requirements:** Node.js 22+, npm, and a Cloudflare account only if deploying. Git and Python 3.12 are useful for contributions; Python is required for this repository's Python tests when present.
+**Requirements:** Node.js 22+, npm, a GitHub account and a Cloudflare account with available Free-plan capacity.
 
 ```bash
-# Extract KestrelMesh-Phase22-Complete-Source.zip first
+git clone https://github.com/amiddlebrook/KestrelMesh.git
 cd KestrelMesh
-npm install
+npm ci
 npm run check
 npm test
 npm run db:local
 npm run dev
 ```
 
-Open the local URL Wrangler prints. Local `localhost` development bypasses deployed bearer authentication so sample workflows are easy to exercise; **never treat that convenience as a deployment authentication configuration**. D1 migrations run locally before the first start.
+Open the local URL printed by Wrangler. Local development uses a **local D1 instance**, not the live portfolio database. To deploy your own environment, create a unique D1 database, configure `wrangler.jsonc` to reference **your own account and database**, set a secret administrator token with `wrangler secret put ADMIN_TOKEN`, run `npm run db:remote`, then `npm run deploy`. **Never reuse the portfolio project's deployment target or publish secrets.**
 
-For Cloudflare deployment, the production pipeline creates/reuses its own D1 database, applies migrations and updates the Worker. `wrangler.jsonc` contains a placeholder database ID that the pipeline resolves at runtime; do not commit your credentials or a machine-specific live database ID.
+Production deployments require the account's GitHub Actions repository secrets for Cloudflare authentication and the application administrator; see [`docs/OPERATIONS.md`](docs/OPERATIONS.md) and [`docs/SECURITY.md`](docs/SECURITY.md).
 
-## API tour
+## Verification and operational controls
 
-`GET /api/health` is the only intentionally unauthenticated API route on the public deployment. All routes below require a bearer credential.
-
-| Method | Endpoint | Purpose |
+| Gate | Command or workflow | What it establishes |
 |---|---|---|
-| `GET` | `/api/models` | Model catalog |
-| `GET` | `/api/rules` | Routing policy |
-| `POST` | `/api/route-preview` | Preview a route without inference |
-| `GET` | `/api/metrics` | Recorded metrics |
-| `GET` | `/api/circuits` | Circuit state |
-| `GET` | `/api/circuit-leases` | Half-open recovery leases |
+| TypeScript and syntax | `npm run check` | Type soundness and frontend syntax |
+| Domain and security tests | `npm test` | Isolated SQLite/D1-style integration and negative cases |
+| Reproducible build | `npm run verify:release` | Locked dependencies, migration and asset integrity |
+| Database restore drill | `npm run verify:recovery` | Synthetic schema/data backup→restore integrity |
+| Scoped live credentials | `npm run verify:auth-live` | Production key creation, restriction and revocation |
+| Live browser acceptance | `npm run verify:browser` | Cloudflare desktop/mobile guest and authenticated navigation |
+| Edge latency sample | `npm run verify:edge` | 24 bounded read-only health requests; **not** a load SLA |
 
-Example, using a root token already configured as the private Cloudflare `ADMIN_TOKEN`:
+Every push to `main` triggers GitHub CI and Cloudflare deployment. Production-release checks include a dedicated Worker/D1 ownership fence, scoped credential lifecycle, free-tier budget policy, browser screens, and restoration rehearsal. [Inspect the deploy workflow](.github/workflows/deploy.yml).
 
-```bash
-# Set this in your shell without checking it into source control:
-export APP_ADMIN_TOKEN='YOUR_PRIVATE_TOKEN'
-curl -sS 'https://portfolio-kestrelmesh.averymiddlebrook2014.workers.dev/api/overview' \
-  -H "Authorization: Bearer $APP_ADMIN_TOKEN"
+## Zero-cost operating model
+
+This repository uses **only free-tier-compatible Cloudflare and GitHub services** and adds application-level daily quotas. Remote AI is disabled by default. When a supported quota is exceeded, the operation is rejected rather than silently falling back to a paid service. Cloudflare's provider-side allocations are shared across the account where applicable; **unlimited use for $0 is not promised**. [Quota design and limitations](docs/ZERO_COST_POLICY.md).
+
+## Security boundaries and trade-offs
+
+- Each product has its own Worker, database binding and immutable runtime workspace ownership record.
+- Private API routes require an administrator credential or appropriately scoped, expiring delegated key; credentials are never embedded in the frontend.
+- Revocation, approvals and other security-critical transitions are guarded by atomic SQLite state changes and audited where implemented.
+- The public guest experience displays **illustrative data**, not real customer information.
+- **Out of scope today:** Not a proven high-throughput global inference SLA; sustained load validation is pending. Production restoration from real customer data and third-party penetration testing have not been demonstrated.
+
+See the explicit [security model](docs/SECURITY.md), [architecture trade-offs](docs/ARCHITECTURE.md) and [production-readiness backlog](docs/ROADMAP.md).
+
+## Repository map
+
+```text
+public/         Distinctive product interface, styles and static assets
+src/            Cloudflare Worker, domain APIs, security and free-tier policy
+migrations/     Versioned D1 schema and transactional safeguards
+tests/          Domain regression, security and contract tests
+scripts/        Release checks, browser verification and BRAG video renderer
+.github/        CI, Cloudflare deployment and demo publication workflows
+docs/           Architecture, operations, decisions, media and demos
 ```
 
-### Scoped API access (current milestone)
+## What's next
 
-The root administrator can mint time-limited **viewer** or **operator** credentials from **Access control**, or with `POST /api/access/keys` (admin only). The response returns the new secret **exactly once**. Only its SHA-256 digest is stored in D1.
+- [ ] Distributed concurrency lease stress tests
+- [ ] Token-level budgets across heterogeneous models
+- [ ] Provider-wide p95/p99 SLO tracing
 
-```json
-{
-  "label": "Portfolio read-only integration",
-  "role": "viewer",
-  "route_prefix": "/api/",
-  "expires_in_days": 7
-}
-```
-
-- `viewer`: `GET` / `HEAD`; cannot mutate state.
-- `operator`: permitted methods excluding `DELETE`; can be restricted to an API prefix.
-- `admin`: the root Worker secret, not a stored database key; only it can issue/revoke keys or inspect credential audit.
-- Scoped credentials expire after 1–90 days, can be revoked immediately, and record last use. Endpoint permissions apply to API calls; **they are not tenant isolation or an SSO/RBAC system**.
-
-Keep credentials in a secret manager. Do **not** include them in URLs, source code, issues, screenshots, or documentation. Browser credentials in this demo use tab-lifetime `sessionStorage` and should be considered sensitive.
-
-## Delivery and verification
-
-The two workflows under `.github/workflows/` are separate:
-
-1. **`ci.yml`** checks TypeScript, browser JavaScript, SQL-backed integration tests, and security contracts on pull requests / pushes.
-2. **`deploy.yml`** runs checks on `main`, resolves and migrates the correct D1 instance, deploys static assets + Worker, installs `ADMIN_TOKEN` via Wrangler secret storage, and smoke-tests live authenticated/unauthenticated APIs.
-
-Required GitHub Actions secrets: `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, and `APP_ADMIN_TOKEN`. The Cloudflare token requires permissions to edit Workers and D1 on the target account. See [Security](docs/SECURITY.md) for credential lifecycle and limitations.
-
-Useful commands:
-
-```bash
-npm run check       # TypeScript + frontend syntax
-npm test            # Application and security tests; Python tests when present
-npm run db:local    # Apply local D1 migrations
-npm run verify:live # Requires DEPLOY_URL and APP_ADMIN_TOKEN environment variables
-```
-
-GitHub workflow badges show the latest GitHub Actions status, **not** independent penetration testing or SLO certification. Free-tier quotas and provider availability apply. Deployment does not automatically upgrade billing.
-
-## Security and known limitations
-
-Implemented: deployment-time root secret, scoped expiring API keys, revocation/audit, parameterized SQLite access, defensive input checks, and fail-closed authorization for protected routes. The root credential and all data exist within **one account workspace**.
-
-**Not yet implemented:** Provider-neutral adapters, weighted scheduling, global quotas, request deadlines, OpenTelemetry, measured p95/p99 SLOs and chaos / sustained-load qualification.
-
-The published [production-readiness backlog](docs/ROADMAP.md) tracks the remaining work; read [SECURITY.md](docs/SECURITY.md) for a candid threat model. CI coverage is meaningful engineering evidence, but this project should not be presented as SOC 2 certified, penetration-tested, or production-ready for sensitive multi-customer data.
-
-## Development contributions
-
-Issue reports, reproducible failure cases, test fixtures and targeted pull requests are welcome. Prefer changes that include tests for concurrency, authorization, unexpected input, and migration safety. Keep mock inference clearly labeled, never commit tokens or real customer datasets, and document important tradeoffs in `docs/ARCHITECTURE.md`.
-
-**License:** [MIT](LICENSE).
-
-## Distinct application interface
-
-This repository uses its own workspace layout and record presentation, not the standard UI shell from the other portfolio apps. See [the design-system specification](docs/DESIGN_SYSTEM.md) for the interaction model, security/privacy considerations, and remaining verification work.
-
-## Domain studio (Phase 7)
-
-The protected **SLO Console** workspace is a purpose-built analytical interface powered by a bounded D1 read endpoint: `GET /api/studio/traffic`. It requires an authorized root or scoped key and never invents observations. The studio is read-only by design; mutations remain in the primary workflow screens. Navigate to **SLO Console** after authenticating. Each CI release asserts the studio API and static assets are actually served by the deployed Worker. This dashboard is not a substitute for complete enterprise identity, load testing, or independent security assessment.
-
-## Domain workbench & operational diagnostics (Phase 7)
-
-- **Specialized workbench:** live database-backed `KestrelMesh` workspace available from the main application navigation. It can export a single selected workflow/source/comparison/trace/lineage artifact, explicitly labeled with sampling and evidence limitations. Source: `src/studio.ts`, `public/studio.js`, `public/studio.css`.
-- **Administrative API Activity:** protected mutation journal with correlation IDs (`X-Request-ID`), actor role, HTTP outcome, and latency. Admin-only `GET /api/ops/activity` and `GET /api/ops/summary`; migration `0005_operations.sql`. Activity exports are scoped to the loaded page and do not contain credentials or request bodies. More detail: [Operational diagnostics](docs/OPERATIONS.md).
-- **Verification:** SQL-backed studio tests, authorization/redaction tests, regression tests for exported report structure, TypeScript checks, and GitHub Actions live HTTP checks of both workbenches.
-
-This release is **not** multi-tenant or SSO-ready; write telemetry is best effort, and advanced distributed workflows remain outside the current production scope. See [Roadmap](docs/ROADMAP.md).
-
-## Agent runtime
-
-The **Agent** workspace provides a bounded Workers AI + D1 read-only tool-use loop, domain-specific tool allowlists, operator-stepped execution, and auditable traces. See [Agent Runtime](docs/AGENTS.md) for the lifecycle, trust boundaries, and limitations.
-
-## Agent evidence dossiers and human review
-
-The bounded, read-only Workers AI agent provides `GET /api/agents/:id/dossier` (ordered trace, data snapshot, SHA-256 fingerprint) and an immutable human review at `POST /api/agents/:id/review`. Reviews require a root-admin credential and an explicit written justification. An **accepted** review confirms a human evaluated the report; it never authorizes a workflow, evidence, deployment, production route or model promotion. These fingerprints do not independently prove source authenticity, and review records are not a compliance-grade audit. The agent interface renders the trace in a product-specific workspace and supports a local JSON evidence download.
-
-### Phase 10 · Personal perspectives
-
-D1-backed, credential-isolated saved views are available from each authenticated record explorer, with keyboard-friendly controls, section-specific presets, scoped deep links, and focus/density modes. See [`docs/SAVED_VIEWS.md`](docs/SAVED_VIEWS.md).
-
-## Phase 11: Interactive record workbench (October 2026)
-
-All authenticated record sections now support three layouts (cards, data grid, timeline), real loaded-record state distributions, facet filtering, twelve-item pagination, multi-record comparison, protected CSV/JSON exports, and a modal inspector. Distinct domain visual systems remain intact. See [Record workbench design and security](docs/RECORD_WORKBENCH.md). Client-side list navigation operates only on rows returned by the existing API; full server cursor pagination is future work.
-
-## Phase 11: Interactive record workbench (October 2026)
-
-All authenticated record sections now support three layouts (cards, data grid, timeline), real loaded-record state distributions, facet filtering, twelve-item pagination, multi-record comparison, protected CSV/JSON exports, and a modal inspector. Distinct domain visual systems remain intact. See [Record workbench design and security](docs/RECORD_WORKBENCH.md). Client-side list navigation operates only on rows returned by the existing API; full server cursor pagination is future work.
-
-## Phase 13 — Fleet Telemetry Deck
-
-Open **Records Explorer** in the sidebar. It queries `/api/catalog` via the existing Bearer authentication boundary, uses D1-backed descending keyset pagination, server-side keyword/status filtering, exact filtered counts and accessible per-record inspection. Only allowlisted tables and columns are queried. Cursor values are request-bound and invalidated when filters change. Existing CRUD endpoints are unchanged. No additional paid services. Apply migration `0010_catalog_indexes.sql` during deployment.
-
-
-### Phase 14 · Access Intelligence
-
-Root-only credential governance now includes `/api/access/insights` with seven-day expiry monitoring, permission-scope distribution, and a dedicated interactive Security Access workspace. Keys remain one-time revealed and D1-scoped; this release **does not implement multi-tenant data isolation**. See [Access Intelligence](docs/ACCESS_INTELLIGENCE.md).
-
-## Phase 16 · Independent homepage
-
-A separately designed, API-backed **Network Terminal** opens at `/#overview`, while `/#mission` preserves the previous specialized workspace. See [Homepage system](docs/HOMEPAGE_SYSTEM.md).
-
-## Phase 18 · Security assurance
-
-The API now requires a Bearer credential for every protected route, including `localhost`; the previous implicit local-admin shortcut is removed. Configure `ADMIN_TOKEN` in your ignored `.dev.vars` for local development (use a **different** value from production). Worker and static assets send explicit browser security policies, request JSON is strictly byte-bounded, and scoped operators may remove only their own saved perspectives. New integration tests exercise the actual Worker entrypoint and replay all D1 migrations against SQLite. See [Phase 18 release assurance](docs/RELEASE_ASSURANCE.md). Organization isolation, SSO, immutable audit, and verified full browser E2E remain open requirements.
-
-## Phase 19 — Readability, mobile and transport reliability
-
-Text defaults now avoid microtype: CSS fonts below 13px are raised to a readable minimum (and get extra spacing at mobile sizes). The persistent Standard / Comfortable / Large selector and keyboard-accessible native mobile navigation apply to every app section. See [readability documentation](docs/READABILITY_MOBILE.md). API requests now use same-origin only, bounded request timeouts, no-store cache and non-HTML errors. Cross-viewport QA uses explicitly synthetic fixtures; no claim of certified WCAG conformance.
-
-### Phase 20 — Enforced credential write budgets
-
-All authenticated mutating requests use an atomic, D1-backed 60-second window: root admin 180 writes/minute; each operator key 60 writes/minute. Read requests do not consume quota; viewers still cannot write. Limit failures return HTTP 429 and a numeric `Retry-After` header, including when callers retry unsupported mutation routes. Database errors fail closed rather than bypassing enforcement. The root-only `/api/access/write-quota` endpoint reports aggregate recent usage without plaintext tokens or hashes. `/api/access/write-quota/prune` deletes buckets older than 24 hours; run this root-only maintenance operation periodically to bound storage. These quotas are not a substitute for edge WAF/DDoS protection, full tenant isolation or a distributed production load test. The new SQL migration `0011_write_quota.sql` is applied automatically by CI/CD.
+**License:** [MIT](LICENSE). **Demo method:** [BRAG-slim](https://github.com/latent-spaces/brag/tree/main/skills/brag-slim), using actual guest UI captures and a reproducible, no-paid-service video renderer. [Full video](docs/media/brag.mp4).

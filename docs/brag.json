@@ -1,0 +1,23 @@
+{
+  "accent": "#68DDB7",
+  "background": "#111C22",
+  "hook": "WHEN A MODEL GOES DOWN...",
+  "subhook": "The routing policy should already know what comes next.",
+  "feature1": "Route with visibility.",
+  "feature2": "Circuit state is deliberate.",
+  "proof": [
+    "Atomic failure counters",
+    "Bounded recovery leases",
+    "Free-only fallback planner"
+  ],
+  "mobileTitle": "Observe the edge.",
+  "mobileLines": [
+    "Rank eligible backends.",
+    "Inspect failure events.",
+    "Avoid paid fallbacks."
+  ],
+  "closing": "Failures have a plan.",
+  "closingLine": "Explore routing, telemetry and circuit controls.",
+  "share": "KestrelMesh explores reliable inference routing with guarded circuit breakers, fallback planning and transparent traffic evidence. It fails closed when free inference is disabled.",
+  "name": "KestrelMesh"
+}

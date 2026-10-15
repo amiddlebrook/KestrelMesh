@@ -1,0 +1,70 @@
+name: Publish BRAG product demo
+on:
+  push:
+    branches: [main]
+    paths:
+      - README.md
+      - docs/brag.json
+      - docs/BRAG_DEMO.md
+      - scripts/build-brag.py
+      - .github/workflows/demo-video.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: brag-video-${{ github.repository }}
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Confirm free local render dependencies
+        run: |
+          command -v ffmpeg
+          command -v ffprobe
+          python3 -m pip install --disable-pip-version-check pillow
+      - name: Download live public browser captures (guest only)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          APP="$(python3 -c 'import json; print(json.load(open("docs/brag.json"))["name"])')"
+          ART="$(echo "$APP" | tr '[:upper:]' '[:lower:]')-browser-acceptance"
+          RUN_ID="$(gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts?name=${ART}&per_page=30" --jq '.artifacts[] | select(.expired == false) | .workflow_run.id' | head -n 1)"
+          test -n "$RUN_ID" || { echo 'Missing completed production browser evidence'; exit 1; }
+          mkdir -p docs/demo-source
+          gh run download "$RUN_ID" --name "$ART" --dir docs/demo-source
+          test -s "docs/demo-source/${APP}-desktop-guest.png"
+          test -s "docs/demo-source/${APP}-mobile-guest.png"
+      - name: Render /brag-slim storyboard into MP4, poster and preview
+        run: python3 scripts/build-brag.py --config docs/brag.json --screenshots docs/demo-source --output docs/media
+      - name: Validate output and duration
+        run: |
+          set -euo pipefail
+          test -s docs/media/brag.mp4
+          test -s docs/media/brag-preview.gif
+          test -s docs/media/brag-poster.jpg
+          test -s docs/media/share-copy.txt
+          ffprobe -v error -show_entries format=duration -of default=nw=1 docs/media/brag.mp4
+          python3 - <<'PY'
+          import subprocess
+          duration=float(subprocess.check_output(['ffprobe','-v','error','-show_entries','format=duration','-of','default=noprint_wrappers=1:nokey=1','docs/media/brag.mp4']).decode())
+          assert 19.5<=duration<=20.5,duration
+          PY
+      - name: Publish demo assets to this repository
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/media/brag.mp4 docs/media/brag-preview.gif docs/media/brag-poster.jpg docs/media/share-copy.txt
+          if git diff --cached --quiet; then echo 'No updated media'; exit 0; fi
+          git commit -m "docs: publish BRAG-slim live-product video and preview [skip ci]"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
