@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
-    "check": "tsc --noEmit && node --check public/app.js && node --check public/config.js && node --check public/experience.js && node --check public/workspace.js && node --check public/interaction.js && node --check public/details.js && node --check public/explorer.js && node --check public/studio.js && node --check public/ops.js && node --check public/studio-export.js && node --check public/decision.js && node --check public/agent.js && node --check public/saved-views.js && node --check public/lens.js",
+    "check": "tsc --noEmit && node --check public/app.js && node --check public/config.js && node --check public/experience.js && node --check public/workspace.js && node --check public/interaction.js && node --check public/details.js && node --check public/explorer.js && node --check public/studio.js && node --check public/ops.js && node --check public/studio-export.js && node --check public/decision.js && node --check public/agent.js && node --check public/saved-views.js && node --check public/lens.js && node --check scripts/verify-deployment.mjs",
     "test": "node scripts/compile-tests.mjs && node --test tests/smoke.test.mjs tests/integration.test.mjs tests/advanced.test.mjs tests/security.test.mjs tests/identity.test.mjs tests/phase3.test.mjs tests/access.test.mjs tests/workspace.test.mjs tests/interface-quality.test.mjs tests/explorer.test.mjs tests/studio.test.mjs tests/operations.test.mjs tests/studio-artifacts.test.mjs tests/decision.test.mjs tests/agent.test.mjs tests/agent-ux.test.mjs tests/agent-review.test.mjs tests/views.test.mjs tests/lens.test.mjs",
     "db:local": "wrangler d1 migrations apply DB --local",
     "db:remote": "wrangler d1 migrations apply DB --remote",
