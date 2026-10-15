@@ -31,6 +31,11 @@ for(let attempt=1;attempt<=7;attempt++){
   assert.equal(freeBudget.requests.limit,1200,'Missing daily authenticated API request ceiling');
   assert.equal(freeBudget.ai.limit,4,'Missing free remote AI quota ceiling');
 
+  await check('/api/access/workspace',401);
+  const workspace=await (await check('/api/access/workspace',200,token)).json();
+  assert.deepEqual([workspace.app,workspace.worker,workspace.database,workspace.mode,workspace.verified,workspace.multitenant],
+    ['KestrelMesh','portfolio-kestrelmesh','portfolio-kestrelmesh-db','single-workspace',true,false],
+    'Worker must refuse wrong D1 database binding or unknown tenancy mode');
   const overview=await (await check('/api/overview',200,token)).json();
   assert.ok(Array.isArray(overview.metrics),'Authenticated D1 overview contract missing');
   const domain=await (await check('/api/circuits',200,token)).json();

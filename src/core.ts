@@ -105,6 +105,8 @@ export async function withApi(req: Request, env: Env, fn: Handler): Promise<Resp
   let principal:import('./access').Principal|null=null;
   let response:Response;
   try {
+   const workspace=await import('./workspace-boundary');
+   await workspace.assertWorkspaceBinding(env);
    const access=await import('./access');
    principal=await access.authenticate(req,env,url);
    const free=await import('./free-tier');

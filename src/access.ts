@@ -44,6 +44,10 @@ export async function accessApi(req:Request,env:Env,url:URL,principal:Principal)
   if (p==='/api/access/me' && req.method==='GET') return json({kind:principal.kind,role:principal.role,id:principal.id,label:principal.label,route_prefix:principal.prefix});
   if (!p.startsWith('/api/access/')) return null;
   if (principal.role!=='admin') fail(403,'Only the root administrator may manage credentials');
+  if(p==='/api/access/workspace' && req.method==='GET'){
+    const {getWorkspaceBoundary}=await import('./workspace-boundary');
+    return json(await getWorkspaceBoundary(env));
+  }
 
   if(p==='/api/access/maintenance' && req.method==='GET') {
     const row=await first<{ran_at:string;rows_pruned:number}>(env,
@@ -114,7 +118,8 @@ export async function accessApi(req:Request,env:Env,url:URL,principal:Principal)
     const row=await first<KeyRow>(env,'SELECT * FROM access_keys WHERE id=?',revoke[1]);
     if (!row) fail(404,'Credential not found');
     if (row.revoked_at) fail(409,'Credential is already revoked');
-    // UPDATE RETURNING confirms the exact conditional revocation; trigger-inclusive D1 row counts are ambiguous.
+    // RETURNING identifies whether this conditional UPDATE actually changed the key.
+    // Do not depend on D1 meta.changes: audit triggers can distort its semantics.
     const updated=await env.DB.prepare('UPDATE access_keys SET revoked_at=? WHERE id=? AND revoked_at IS NULL RETURNING id').bind(now(),row.id).first<{id:string}>();
     if (!updated) fail(409,'Credential was already revoked');
     return json({revoked:true,id:row.id});

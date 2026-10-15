@@ -78,6 +78,8 @@ export default {
  async scheduled(controller:{cron:string},env:Env):Promise<void> {
   // Scheduled events are Cloudflare-internal. Never expose this action through HTTP.
   if(controller.cron!=='0 4 * * *')throw new Error('Unknown maintenance schedule');
+  const {assertWorkspaceBinding}=await import('./workspace-boundary');
+  await assertWorkspaceBinding(env);
   const {cleanupWriteQuota}=await import('./write-quota');
   const removed=await cleanupWriteQuota(env);
   const {cleanupBudget}=await import('./free-tier');
