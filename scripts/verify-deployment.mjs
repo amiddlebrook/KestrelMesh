@@ -23,6 +23,14 @@ for(let attempt=1;attempt<=7;attempt++){
   await check('/api/overview',401);
   const token=process.env.APP_ADMIN_TOKEN;
   if(!token)throw new Error('Missing APP_ADMIN_TOKEN: authenticated smoke testing is required');
+  await check('/api/free-tier/status',401);
+  const freeBudget=await (await check('/api/free-tier/status',200,token)).json();
+  assert.equal(freeBudget.mode,'free-only','Production cost policy not active');
+  assert.equal(freeBudget.remote_ai_enabled,false,'Production must not call remote inference by default');
+  assert.equal(freeBudget.paid_services_required,false,'A paid service became mandatory');
+  assert.equal(freeBudget.requests.limit,1200,'Missing daily authenticated API request ceiling');
+  assert.equal(freeBudget.ai.limit,4,'Missing free remote AI quota ceiling');
+
   const overview=await (await check('/api/overview',200,token)).json();
   assert.ok(Array.isArray(overview.metrics),'Authenticated D1 overview contract missing');
   const domain=await (await check('/api/circuits',200,token)).json();
