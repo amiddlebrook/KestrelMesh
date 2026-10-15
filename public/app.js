@@ -1,3 +1,4 @@
+import {renderMission} from './mission.js';
 import {renderAccessConsole} from './access-console.js';
 import {renderCatalog} from './catalog.js';
 import {renderAtlas,disposeAtlas} from './atlas.js';
@@ -16,7 +17,7 @@ import app from './config.js';
 const root=document.getElementById('app');
 document.body.dataset.product=app.name.toLowerCase();
 const validPages=new Set(['overview','access',...app.sections.map(section=>section.id)]);
-const routeFromHash=()=>{try{const id=decodeURIComponent(location.hash.slice(1));return validPages.has(id)?id:'overview'}catch{return 'overview'}};
+const routeFromHash=()=>{try{const id=decodeURIComponent(location.hash.slice(1));return validPages.has(id)?id:'mission'}catch{return 'mission'}};
 let page=routeFromHash(),lastResult=null,notice='',noticeType='success';
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const pretty=x=>JSON.stringify(x,null,2);
@@ -147,6 +148,6 @@ async function custom(spec){const el=document.getElementById('content');
 }
 async function renderAccess(){return renderAccessConsole({root:document.getElementById('content'),api,success,error,product:app.name});}
 
-async function render(){disposeAtlas();skeleton();title();const spec=app.sections.find(s=>s.id===page);try{if(page==='overview')await overview();else if(page==='registry')await renderCatalog({root:document.getElementById('content'),api,esc,product:app.name,report:success});else if(page==='atlas')await renderAtlas({root:document.getElementById('content'),app,api,esc,go:id=>{if(!validPages.has(id))return;page=id;location.hash=id;render()},report:success});else if(page==='studio')await renderStudio({root:document.getElementById('content'),api,esc,go:id=>{if(!validPages.has(id))return;page=id;location.hash=id;render()},success,error});else if(page==='access')await renderAccess();else if(page==='agent')await renderAgent({root:document.getElementById('content'),api,esc,success,error});else if(page==='decisions')await renderDecision({root:document.getElementById('content'),api,esc,success,error});else if(page==='ops')await renderOperations({root:document.getElementById('content'),api,esc,success,error});else if(spec?.custom)await custom(spec);else if(spec){await renderList(spec);try{await enrichSection({root:document.getElementById('content'),page,api,esc,success,error})}catch(e){console.warn('Workspace enhancement unavailable',e)}};}catch(e){error(e)}}
+async function render(){disposeAtlas();skeleton();title();const spec=app.sections.find(s=>s.id===page);try{if(page==='mission')await renderMission({root:document.getElementById('content'),api,esc,go:id=>{if(!validPages.has(id))return;page=id;location.hash=id;render()},success,error});else if(page==='overview')await overview();else if(page==='registry')await renderCatalog({root:document.getElementById('content'),api,esc,product:app.name,report:success});else if(page==='atlas')await renderAtlas({root:document.getElementById('content'),app,api,esc,go:id=>{if(!validPages.has(id))return;page=id;location.hash=id;render()},report:success});else if(page==='studio')await renderStudio({root:document.getElementById('content'),api,esc,go:id=>{if(!validPages.has(id))return;page=id;location.hash=id;render()},success,error});else if(page==='access')await renderAccess();else if(page==='agent')await renderAgent({root:document.getElementById('content'),api,esc,success,error});else if(page==='decisions')await renderDecision({root:document.getElementById('content'),api,esc,success,error});else if(page==='ops')await renderOperations({root:document.getElementById('content'),api,esc,success,error});else if(spec?.custom)await custom(spec);else if(spec){await renderList(spec);try{await enrichSection({root:document.getElementById('content'),page,api,esc,success,error})}catch(e){console.warn('Workspace enhancement unavailable',e)}};}catch(e){error(e)}}
 addEventListener('hashchange',()=>{const target=routeFromHash();if(target!==page){page=target;render()}});
 render();

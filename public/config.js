@@ -4,6 +4,7 @@ export default {
   "accent": "#d0b082",
   "icon": "⟐",
   "sections": [
+    {"id":"mission","label":"Telemetry Radar","custom":"mission"},
     {"id":"registry","label":"Records Explorer","custom":"registry"},
     {
       "id": "atlas",

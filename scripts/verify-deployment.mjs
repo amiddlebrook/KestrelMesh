@@ -98,8 +98,14 @@ for(let attempt=1;attempt<=7;attempt++){
   assert.ok(atlasCss.includes('.at-viewport') && atlasCss.includes('.at-mast'),'Phase 12 graph stylesheet missing');
   const lensCss=await (await check('/lens.css',200)).text();
   assert.ok(lensCss.includes('.lens-workbench') && lensCss.includes('.lens-mast'),'Phase 11 product-specific visual design missing');
+  const missionJs=await (await check('/mission.js',200)).text();
+  assert.ok(missionJs.includes('renderMission'),'Phase 15 flagship UI is missing');
+  const missionCss=await (await check('/mission.css',200)).text();
+  assert.ok(missionCss.includes('15'),'Phase 15 product-specific flagship styling missing');
+  const configJs=await (await check('/config.js',200)).text();
+  assert.ok(configJs.includes('mission'),'Phase 15 flagship navigation missing');
   const page=await check('/',200);
-  const html=await page.text(); assert.ok(html.includes('<html')||html.includes('<!doctype html>'),'HTML shell missing');assert.ok(html.includes('/lens.css'),'Phase 11 visual asset not referenced by application');assert.ok(html.includes('/lens.css'),'Phase 11 visual asset not referenced by application');
+  const html=await page.text(); assert.ok(html.includes('<html')||html.includes('<!doctype html>'),'HTML shell missing');assert.ok(html.includes('/lens.css') && html.includes('/mission.css'),'Phase 15 visual assets are not referenced by application');
   console.log(`Live deployment verified: ${origin} (health, D1 domain API, protected API, static site)`);
   process.exit(0);
  }catch(error){previous=error; if(attempt<7)await new Promise(r=>setTimeout(r,1200*attempt));}
