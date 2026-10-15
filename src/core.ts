@@ -62,22 +62,33 @@ export async function generate(env: Env, system: string, user: string, maxTokens
 export function count(row: { n: number } | null): number { return Number(row?.n || 0) }
 export async function withApi(req: Request, env: Env, fn: Handler): Promise<Response> {
   const url = new URL(req.url);
-  if (req.method === 'OPTIONS') return new Response(null,{status:204,headers:{Allow:'GET, HEAD, POST, DELETE, OPTIONS'}});
-  if (url.pathname === '/api/health' && (req.method==='GET'||req.method==='HEAD')) return json({ok:true,app:'online',time:now()});
-  const local=['localhost','127.0.0.1'].includes(url.hostname);
-  if (!local && !env.ADMIN_TOKEN) return json({error:'Deployment disabled: configure ADMIN_TOKEN Worker secret'},503);
-  try {
-    // Local Wrangler remains convenient for demos. Production always requires auth.
-    const access=await import('./access');
-    const principal=local
-      ? {kind:'root' as const,role:'admin' as const,id:null,label:'Local development',prefix:'/api/'}
-      : await access.authenticate(req,env,url);
-    const managed=await access.accessApi(req,env,url,principal);
-    if(managed) return managed;
-    return await fn(req,env,url);
-  } catch(error) {
-    if(error instanceof HttpError) return json({error:error.message},error.status);
-    console.error('Request error',error);
-    return json({error:'Internal server error'},500);
+  const requestId = uid();
+  const started = Date.now();
+  if(req.method==='OPTIONS')return new Response(null,{status:204,headers:{Allow:'GET, HEAD, POST, DELETE, OPTIONS','X-Request-ID':requestId}});
+  if(url.pathname==='/api/health' && (req.method==='GET'||req.method==='HEAD')){
+   const res=json({ok:true,app:'online',time:now()});res.headers.set('X-Request-ID',requestId);return res;
   }
+  const local=['localhost','127.0.0.1'].includes(url.hostname);
+  if(!local&&!env.ADMIN_TOKEN){const res=json({error:'Deployment disabled: configure ADMIN_TOKEN Worker secret'},503);res.headers.set('X-Request-ID',requestId);return res;}
+  let principal:import('./access').Principal|null=null;
+  let response:Response;
+  try {
+   const access=await import('./access');
+   principal=local
+     ? {kind:'root' as const,role:'admin' as const,id:null,label:'Local development',prefix:'/api/'}
+     : await access.authenticate(req,env,url);
+   const managed=await access.accessApi(req,env,url,principal);
+   const operations=await import('./operations');
+   response=managed || await operations.operationsApi(req,env,url,principal) || await fn(req,env,url);
+  } catch(error) {
+   if(error instanceof HttpError)response=json({error:error.message},error.status);
+   else {console.error('Request error',requestId,error);response=json({error:'Internal server error'},500);}
+  }
+  response.headers.set('X-Request-ID',requestId);
+  // Best-effort write telemetry is explicitly NOT a transactional or forensic audit.
+  if(principal && ['POST','PUT','PATCH','DELETE'].includes(req.method)){
+   try {const operations=await import('./operations');await operations.recordWrite(env,principal,req,url.pathname,response.status,Date.now()-started,requestId);}
+   catch(e){console.error('Diagnostic activity write failed',requestId,String(e));}
+  }
+  return response;
 }

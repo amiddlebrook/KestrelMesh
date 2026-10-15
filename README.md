@@ -147,3 +147,15 @@ Issue reports, reproducible failure cases, test fixtures and targeted pull reque
 ## Distinct application interface
 
 This repository uses its own workspace layout and record presentation, not the standard UI shell from the other portfolio apps. See [the design-system specification](docs/DESIGN_SYSTEM.md) for the interaction model, security/privacy considerations, and remaining verification work.
+
+## Domain studio (Phase 7)
+
+The protected **SLO Console** workspace is a purpose-built analytical interface powered by a bounded D1 read endpoint: `GET /api/studio/traffic`. It requires an authorized root or scoped key and never invents observations. The studio is read-only by design; mutations remain in the primary workflow screens. Navigate to **SLO Console** after authenticating. Each CI release asserts the studio API and static assets are actually served by the deployed Worker. This dashboard is not a substitute for complete enterprise identity, load testing, or independent security assessment.
+
+## Domain workbench & operational diagnostics (Phase 7)
+
+- **Specialized workbench:** live database-backed `KestrelMesh` workspace available from the main application navigation. It can export a single selected workflow/source/comparison/trace/lineage artifact, explicitly labeled with sampling and evidence limitations. Source: `src/studio.ts`, `public/studio.js`, `public/studio.css`.
+- **Administrative API Activity:** protected mutation journal with correlation IDs (`X-Request-ID`), actor role, HTTP outcome, and latency. Admin-only `GET /api/ops/activity` and `GET /api/ops/summary`; migration `0005_operations.sql`. Activity exports are scoped to the loaded page and do not contain credentials or request bodies. More detail: [Operational diagnostics](docs/OPERATIONS.md).
+- **Verification:** SQL-backed studio tests, authorization/redaction tests, regression tests for exported report structure, TypeScript checks, and GitHub Actions live HTTP checks of both workbenches.
+
+This release is **not** multi-tenant or SSO-ready; write telemetry is best effort, and advanced distributed workflows remain outside the current production scope. See [Roadmap](docs/ROADMAP.md).

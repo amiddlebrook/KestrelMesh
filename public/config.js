@@ -4,6 +4,8 @@ export default {
   "accent": "#d0b082",
   "icon": "⟐",
   "sections": [
+    {"id":"ops","label":"API Activity","custom":"ops"},
+    {"id":"studio","label":"SLO Console","custom":"studio"},
     {
       "id": "models",
       "label": "Model Registry",
