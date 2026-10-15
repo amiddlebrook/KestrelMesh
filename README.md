@@ -185,3 +185,8 @@ All authenticated record sections now support three layouts (cards, data grid, t
 ## Phase 11: Interactive record workbench (October 2026)
 
 All authenticated record sections now support three layouts (cards, data grid, timeline), real loaded-record state distributions, facet filtering, twelve-item pagination, multi-record comparison, protected CSV/JSON exports, and a modal inspector. Distinct domain visual systems remain intact. See [Record workbench design and security](docs/RECORD_WORKBENCH.md). Client-side list navigation operates only on rows returned by the existing API; full server cursor pagination is future work.
+
+## Phase 13 — Fleet Telemetry Deck
+
+Open **Records Explorer** in the sidebar. It queries `/api/catalog` via the existing Bearer authentication boundary, uses D1-backed descending keyset pagination, server-side keyword/status filtering, exact filtered counts and accessible per-record inspection. Only allowlisted tables and columns are queried. Cursor values are request-bound and invalidated when filters change. Existing CRUD endpoints are unchanged. No additional paid services. Apply migration `0010_catalog_indexes.sql` during deployment.
+
