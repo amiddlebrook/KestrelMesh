@@ -16,7 +16,8 @@
     "verify:browser": "node scripts/verify-browser.mjs",
     "verify:recovery": "node scripts/drill-recovery.mjs",
     "verify:edge": "node scripts/verify-edge-budget.mjs",
-    "verify:auth-live": "node scripts/verify-live-access.mjs"
+    "verify:auth-live": "node scripts/verify-live-access.mjs",
+    "verify:identity": "node scripts/verify-deployment-identity.mjs"
   },
   "devDependencies": {
     "typescript": "^5.9.0",
