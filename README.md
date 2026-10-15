@@ -1,3 +1,5 @@
+> **Phase 23:** Balanced product-specific interface with purposeful action/status/data colors. Token-free routing replay with synthetic traffic presets and comparisons of consecutive routing decisions. Existing history and workflows retained; fully authenticated browser release review remains outstanding.
+
 > **Phase 17:** The home route now opens into an interactive product-specific workspace (not a marketing hero). Without credentials, the homepage uses visibly labeled illustrative demo records; connecting an API key unlocks private D1 data. All previous tools remain available.
 
 # KestrelMesh

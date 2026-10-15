@@ -1,0 +1,10 @@
+/* KestrelMesh / Phase 23 — network charcoal, cyan routing, green health, amber warnings. */
+:root{--bg:#10191e;--surface:#18252e;--surface2:#24323c;--line:#3d5460;--text:#e5f0f3;--muted:#afc3cb;--accent:#75d0de;--info:#8caff2;--success:#7cdaa3;--warning:#f3c57a;color-scheme:dark}
+body{background:#111b20;color:#e9f1f4}.sidebar{background:#111e26;border-color:#33505d}.brand-icon{background:#6dcbd8;color:#0e2932}.nav button.active,.nav button:hover{background:#243c48;border-color:#476875;color:#a6edf4}.nav button.active{box-shadow:inset 3px 0 #e3bb70}
+.panel,.stat{background:#1c2b34;border-color:#3d5965}.km16{background:#111e26;color:#e1edf1;--green:#83d7c0}.km16-top,.km16-hero,.km16-inspection,.km16-rack,.km16-statusgrid,.km16-footer{background:#1c2d35;border-color:#3b5c69}.km16-wave{color:#78d2df}.km16-prompt,.km16-cursor{color:#8edee7}.km16-statusgrid{border-top:3px solid #d5aa66}.km17-session{background:#162630}
+.km-head,.km-hero>div,.km-panels>div,.km-route-preview{background:#1b2b34;border-color:#45616b}.km-live,.km-head-actions button{color:#95e3eb}.km-prompt,.km-route-preview label{color:#92dbe3}
+.lab-hero{background:linear-gradient(116deg,#1c3340,#1b2b33 72%,#29373c);border:1px solid #446474;border-left:5px solid #6bc7d7}.lab-kicker{color:#95dce8;opacity:1}
+.lab-panel{background:#1c2b34;border:1px solid #4a646e}.lab-panel select,.lab-panel textarea{background:#121f27;color:#e7f4f7;border:1px solid #65808a}
+.lab-panel button,.btn{background:#75d0de;color:#112b32}.lab-stats span{background:#253e49;color:#a4e9ef;border:1px solid #52737b}.lab-stats span:nth-child(2){background:#46382e;color:#ffd39a;border-color:#7f6651}.lab-stats span:nth-child(3){background:#243f39;color:#a5e8bd;border-color:#4f7568}
+.lab-routing li{border-color:#435a63}.lab-bar{background:#3c4c55}.lab-bar i{background:#75cedb}.lab-status.good{color:#97e3b7}.lab-status.bad{color:#f4ca8c}.lab-route-rule{color:#a0e3ef}.lab-route-fallback{color:#f2c586}.lab-caption{color:#b8cbd1;opacity:1}
+:where(button,a,input,select,textarea):focus-visible{outline:3px solid #90ddea;outline-offset:2px}
