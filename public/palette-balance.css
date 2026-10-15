@@ -8,3 +8,17 @@ body{background:#111b20;color:#e9f1f4}.sidebar{background:#111e26;border-color:#
 .lab-panel button,.btn{background:#75d0de;color:#112b32}.lab-stats span{background:#253e49;color:#a4e9ef;border:1px solid #52737b}.lab-stats span:nth-child(2){background:#46382e;color:#ffd39a;border-color:#7f6651}.lab-stats span:nth-child(3){background:#243f39;color:#a5e8bd;border-color:#4f7568}
 .lab-routing li{border-color:#435a63}.lab-bar{background:#3c4c55}.lab-bar i{background:#75cedb}.lab-status.good{color:#97e3b7}.lab-status.bad{color:#f4ca8c}.lab-route-rule{color:#a0e3ef}.lab-route-fallback{color:#f2c586}.lab-caption{color:#b8cbd1;opacity:1}
 :where(button,a,input,select,textarea):focus-visible{outline:3px solid #90ddea;outline-offset:2px}
+
+/* Phase 27 mobile acceptance: compact operation controls without hiding navigation. */
+@media(max-width:640px){
+ .topbar .actions{display:grid!important;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr)!important;gap:8px!important;width:100%;align-items:center!important;}
+ .topbar .actions>.enterprise-mode-button,.topbar .actions>.enterprise-quick{display:none!important;}
+ .topbar .actions>#auth,.topbar .actions>#refresh{grid-row:1;min-width:0!important;width:100%!important;max-width:none!important;padding:8px!important;font-size:14px!important;overflow-wrap:anywhere;}
+ .topbar .actions>#auth{grid-column:1;}
+ .topbar .actions>#refresh{grid-column:2;}
+ .topbar .actions>.readability-controls{grid-column:1/-1;grid-row:2;display:grid!important;grid-template-columns:minmax(104px,1fr) minmax(190px,2fr);gap:8px!important;width:100%!important;min-width:0;align-items:center;}
+ .readability-controls>.readability-menu{display:inline-flex!important;width:100%!important;margin:0!important;min-width:0!important;justify-content:center;}
+ .readability-controls>.readability-label{min-width:0;display:flex!important;align-items:center;justify-content:flex-end;gap:7px;white-space:nowrap!important;font-size:12px!important;margin:0!important;}
+ .readability-controls .readability-select{width:112px!important;min-width:112px!important;max-width:125px!important;font-size:14px!important;}
+ .readability-controls .readability-menu{border-radius:3px!important;background:#15413c!important;color:#b9f4e6!important;border:1px solid #26665e!important;}
+}

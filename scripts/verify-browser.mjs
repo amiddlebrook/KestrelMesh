@@ -47,7 +47,13 @@ try {
  for(const mode of ['desktop','mobile']){
   const c=await openPage(port);
   const mobile=mode==='mobile';await c.send('Emulation.setDeviceMetricsOverride',{width:mobile?390:1440,height:mobile?844:900,deviceScaleFactor:1,mobile});
-  await navigate(c,`${origin}/#overview`);const home=await inspect(c,`${mode} home`);await snapshot(c,`${product}-${mode}-guest.png`);
+  await navigate(c,`${origin}/#overview`);const home=await inspect(c,`${mode} home`);
+  if(mobile){
+   const toolbar=await c.eval(`(()=>{const bar=document.querySelector('.topbar .actions');const menu=document.querySelector('.readability-menu');const dialog=document.querySelector('.mobile-navigation-dialog');const height=bar?.getBoundingClientRect().height||999;if(!menu||!dialog)return {height,opened:false};menu.click();const opened=dialog.open;dialog.close();return {height,opened};})()`);
+   assert.ok(toolbar.opened,'Mobile sections navigation did not open');
+   assert.ok(toolbar.height<=180,`Mobile utility toolbar too tall: ${toolbar.height}px`);
+  }
+  await snapshot(c,`${product}-${mode}-guest.png`);
   await navigate(c,`${origin}/#${encodeURIComponent(section)}`);const sectionReport=await inspect(c,`${mode} section`);
   if(c.errors.length)errors.push(...c.errors.map(e=>`${mode} browser error: ${e}`));
   await c.close();console.log(`${product} ${mode}: home=${home.textLength} chars, section=${sectionReport.pageHeading||section} (${sectionReport.textLength} chars), viewport=${sectionReport.viewport}px`);

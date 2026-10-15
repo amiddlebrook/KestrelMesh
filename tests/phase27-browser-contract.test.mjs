@@ -18,3 +18,12 @@ test('Phase 27 authenticated browser acceptance is a real deployment gate',()=>{
  assert.match(runner,/sessionStorage.setItem/);
  assert.doesNotMatch(workflow,/playwright install|billing|npm install -g/);
 });
+
+test('mobile density preserves navigation and reachable 44px controls',()=>{
+ const css=readFileSync('public/palette-balance.css','utf8');
+ assert.match(css,/Phase 27 mobile acceptance/);
+ assert.match(css,/readability-menu/);
+ assert.match(css,/grid-template-columns/);
+ assert.match(css,/minmax\(104px,1fr\)/);
+ assert.match(css,/enterprise-mode-button/);
+});

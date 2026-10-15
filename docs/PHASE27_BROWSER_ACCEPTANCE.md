@@ -12,3 +12,6 @@ The deploy workflow runs a dependency-free Node 22 Chrome DevTools Protocol scri
 
 ## Boundaries
 This checks actual production Chromium browser behavior; Firefox and WebKit are *not* covered. It is a read-only browser acceptance test and does not create production business records. Product-specific state machines continue to have database integration tests. A successful browser release gate does not establish cross-tenant isolation, external security audit, fault-tolerant operations, or unlimited provider quotas.
+
+## Mobile UX refinement
+The real production 390px screenshots revealed toolbar crowding. The mobile workspace now uses two compact rows: credential/refresh and sections/readability. Low-value desktop keyboard-mode buttons are hidden only on narrow screens; keyboard shortcuts still work, and the full navigation remains reachable through an accessible modal. Product-specific colors, corner treatments, and main workspaces remain independent. Browser acceptance enforces the mobile utility-bar height.
