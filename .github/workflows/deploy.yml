@@ -39,6 +39,8 @@ jobs:
         run: npm run check
       - name: Test application contracts
         run: npm test
+      - name: Rehearse a clean database restore with synthetic application data
+        run: npm run verify:recovery
       - name: Provision and migrate D1
         run: bash scripts/bootstrap-d1.sh
       - name: Deploy Cloudflare Worker and assets
@@ -52,6 +54,10 @@ jobs:
           DEPLOY_URL: https://portfolio-kestrelmesh.averymiddlebrook2014.workers.dev
           APP_ADMIN_TOKEN: ${{ secrets.APP_ADMIN_TOKEN }}
         run: npm run verify:live
+      - name: Measure a bounded production health latency sample (24 read-only requests)
+        env:
+          DEPLOY_URL: https://portfolio-kestrelmesh.averymiddlebrook2014.workers.dev
+        run: npm run verify:edge
       - name: Verify actual browser UX on deployed Cloudflare Worker
         env:
           DEPLOY_URL: https://portfolio-kestrelmesh.averymiddlebrook2014.workers.dev

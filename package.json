@@ -13,7 +13,9 @@
     "verify:live": "node scripts/verify-deployment.mjs",
     "verify:release": "node scripts/verify-release.mjs && npm run verify:assets",
     "verify:assets": "node scripts/verify-assets.mjs",
-    "verify:browser": "node scripts/verify-browser.mjs"
+    "verify:browser": "node scripts/verify-browser.mjs",
+    "verify:recovery": "node scripts/drill-recovery.mjs",
+    "verify:edge": "node scripts/verify-edge-budget.mjs"
   },
   "devDependencies": {
     "typescript": "^5.9.0",
