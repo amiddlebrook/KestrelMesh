@@ -34,7 +34,7 @@ export async function authenticate(req: Request, env: Env, url: URL): Promise<Pr
   const scope=row.route_prefix;
   if (!(url.pathname === scope.slice(0,-1) || url.pathname.startsWith(scope))) fail(403,'Credential is not authorized for this resource');
   if (row.role==='viewer' && req.method!=='GET' && req.method!=='HEAD') fail(403,'Read-only credential');
-  if (row.role==='operator' && req.method==='DELETE') fail(403,'Operator credentials cannot delete resources');
+  if (row.role==='operator' && req.method==='DELETE' && !/^\/api\/views\/[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(url.pathname)) fail(403,'Operator credentials cannot delete resources');
   // Used only for last-use visibility; failures must fail closed, not mask revocation.
   await execute(env,"UPDATE access_keys SET last_used_at=? WHERE id=? AND revoked_at IS NULL AND expires_at>?",now(),row.id,now());
   return {kind:'key',role:row.role,id:row.id,label:row.label,prefix:scope};

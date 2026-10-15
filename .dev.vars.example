@@ -1,0 +1,2 @@
+# Copy to .dev.vars and set a LOCAL-ONLY random secret. NEVER commit .dev.vars.
+ADMIN_TOKEN=replace-with-a-locally-generated-long-random-secret

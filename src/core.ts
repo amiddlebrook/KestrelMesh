@@ -26,12 +26,28 @@ export function oneOf(value: unknown, allowed: string[], name: string): string {
   if (typeof value !== 'string' || !allowed.includes(value)) return fail(400, `${name} must be one of ${allowed.join(', ')}`);
   return value;
 }
-export async function body(req: Request, max = 120_000): Promise<Record<string, any>> {
-  if (!req.headers.get('content-type')?.includes('application/json')) return fail(415, 'Content-Type must be application/json');
-  const text = await req.text();
-  if (text.length > max) return fail(413, 'Request too large');
-  try { const parsed: unknown = JSON.parse(text); if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('body must be an object'); return parsed as Record<string, any> }
-  catch { return fail(400, 'Invalid JSON object') }
+export async function body(req:Request,max=120_000):Promise<Record<string,any>> {
+ if(!/^application\/json(?:\s*;\s*charset=utf-8)?\s*$/i.test(req.headers.get('content-type')||''))fail(415,'Content-Type must be application/json');
+ const declared=req.headers.get('content-length');
+ if(declared && /^\d+$/.test(declared) && Number(declared)>max)fail(413,'Request too large');
+ if(!req.body)fail(400,'Invalid JSON object');
+ const reader=req.body.getReader();
+ const chunks:Uint8Array[]=[];let received=0;
+ try {
+  for(;;){
+   const {done,value}=await reader.read();if(done)break;
+   received+=value.byteLength;
+   if(received>max){void reader.cancel().catch(()=>{});fail(413,'Request too large');}
+   chunks.push(value);
+  }
+ }finally{reader.releaseLock()}
+ const bytes=new Uint8Array(received);let offset=0;
+ for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength}
+ try {
+  const value:unknown=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes));
+  if(!value||typeof value!=='object'||Array.isArray(value))throw Error('invalid object');
+  return value as Record<string,any>;
+ }catch{fail(400,'Invalid JSON object')}
 }
 export function limit(url: URL, max = 100): number { return Math.max(1, Math.min(max, Number(url.searchParams.get('limit')) || 30)) }
 export function pathId(url: URL, prefix: string): string | null {
@@ -60,23 +76,34 @@ export async function generate(env: Env, system: string, user: string, maxTokens
   return result.response ?? result.result?.response ?? fail(502, 'AI provider returned no text');
 }
 export function count(row: { n: number } | null): number { return Number(row?.n || 0) }
+/** API-only response hardening. Static asset policies live in public/_headers. */
+function secure(res:Response,requestId:string):Response {
+ res.headers.set('X-Request-ID',requestId);
+ res.headers.set('Cache-Control','no-store');
+ res.headers.set('X-Content-Type-Options','nosniff');
+ res.headers.set('X-Frame-Options','DENY');
+ res.headers.set('Referrer-Policy','no-referrer');
+ res.headers.set('Permissions-Policy','camera=(), microphone=(), geolocation=(), payment=(), usb=()');
+ res.headers.set('Content-Security-Policy',"default-src 'none'; frame-ancestors 'none'; base-uri 'none'");
+ res.headers.set('Strict-Transport-Security','max-age=31536000');
+ return res;
+}
 export async function withApi(req: Request, env: Env, fn: Handler): Promise<Response> {
   const url = new URL(req.url);
   const requestId = uid();
   const started = Date.now();
-  if(req.method==='OPTIONS')return new Response(null,{status:204,headers:{Allow:'GET, HEAD, POST, DELETE, OPTIONS','X-Request-ID':requestId}});
+  if(req.method==='OPTIONS')return secure(new Response(null,{status:204,headers:{Allow:'GET, HEAD, POST, DELETE, OPTIONS'}}),requestId);
   if(url.pathname==='/api/health' && (req.method==='GET'||req.method==='HEAD')){
-   const res=json({ok:true,app:'online',time:now()});res.headers.set('X-Request-ID',requestId);return res;
+   return secure(json({ok:true,app:'online',time:now()}),requestId);
   }
-  const local=['localhost','127.0.0.1'].includes(url.hostname);
-  if(!local&&!env.ADMIN_TOKEN){const res=json({error:'Deployment disabled: configure ADMIN_TOKEN Worker secret'},503);res.headers.set('X-Request-ID',requestId);return res;}
+  // A request URL or Host header must never grant administrator access.
+  // Local `wrangler dev` uses .dev.vars ADMIN_TOKEN, exactly like production.
+  if(!env.ADMIN_TOKEN){const res=json({error:'Deployment disabled: configure ADMIN_TOKEN Worker secret'},503);return secure(res,requestId);}
   let principal:import('./access').Principal|null=null;
   let response:Response;
   try {
    const access=await import('./access');
-   principal=local
-     ? {kind:'root' as const,role:'admin' as const,id:null,label:'Local development',prefix:'/api/'}
-     : await access.authenticate(req,env,url);
+   principal=await access.authenticate(req,env,url);
    const managed=await access.accessApi(req,env,url,principal);
    const operations=await import('./operations');
    const review=await import('./agent-review');
@@ -87,7 +114,7 @@ export async function withApi(req: Request, env: Env, fn: Handler): Promise<Resp
    if(error instanceof HttpError)response=json({error:error.message},error.status);
    else {console.error('Request error',requestId,error);response=json({error:'Internal server error'},500);}
   }
-  response.headers.set('X-Request-ID',requestId);
+  secure(response,requestId);
   // Best-effort write telemetry is explicitly NOT a transactional or forensic audit.
   if(principal && ['POST','PUT','PATCH','DELETE'].includes(req.method)){
    try {const operations=await import('./operations');await operations.recordWrite(env,principal,req,url.pathname,response.status,Date.now()-started,requestId);}
