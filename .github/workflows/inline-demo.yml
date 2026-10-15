@@ -1,0 +1,53 @@
+name: Publish full inline README demo
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/inline-demo.yml
+      - docs/media/brag.mp4
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: inline-readme-${{ github.repository }}
+  cancel-in-progress: false
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Install free local animation tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+      - name: Render the entire 20-second demo as a looping GIF
+        run: |
+          set -euo pipefail
+          ffmpeg -hide_banner -loglevel error -y -i docs/media/brag.mp4 \
+            -filter_complex '[0:v]fps=6,scale=640:-1:flags=lanczos,split[x][y];[x]palettegen=max_colors=96:stats_mode=diff[p];[y][p]paletteuse=dither=bayer:bayer_scale=3' \
+            -loop 0 docs/media/brag-inline.gif
+          python3 - <<'PY'
+          import subprocess
+          from pathlib import Path
+          gif=Path('docs/media/brag-inline.gif')
+          duration=float(subprocess.check_output(['ffprobe','-v','error','-show_entries','format=duration','-of','default=noprint_wrappers=1:nokey=1',str(gif)], text=True).strip())
+          assert 19.5 <= duration <= 20.5, f'Expected 20-second inline animation, got {duration}s'
+          assert 0 < gif.stat().st_size <= 10_000_000, f'GIF outside 10MB budget: {gif.stat().st_size}'
+          print(f'OK: {duration:.1f}s, {gif.stat().st_size/1_000_000:.2f} MB')
+          PY
+      - name: Publish the inline README animation
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/media/brag-inline.gif
+          if git diff --cached --quiet; then
+            echo "Inline GIF is already current."
+            exit 0
+          fi
+          git commit -m "docs: publish complete 20-second inline README GIF [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main
