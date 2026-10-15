@@ -1,3 +1,4 @@
+import { renderShell, renderRecords } from './workspace.js';
 import { renderExperience, enrichSection, identity } from './experience.js';
 import app from './config.js';
 const root=document.getElementById('app');
@@ -26,10 +27,11 @@ function table(items,columns,includeActions=false){if(!items.length)return '<div
 function panel(title,inside,detail=''){return `<div class="panel"><div class="panel-head"><h3>${esc(title)}</h3>${detail}</div>${inside}</div>`}
 function metrics(items){return `<div class="grid">${(items||[]).map(item=>`<div class="stat"><strong>${cell(item.value)}</strong><span>${esc(item.label)}</span></div>`).join('')}</div>`}
 function paintNotice(){const el=document.getElementById('message');if(!el)return;el.className=notice?'notice '+noticeType:'hidden';el.textContent=notice;}
-function skeleton(){root.innerHTML=`<div class="layout layout-${app.name.toLowerCase()}"><aside class="sidebar"><div class="brand"><div class="brand-icon">${esc(app.icon)}</div><div><h1>${esc(app.name)}</h1><small>${esc(identity.sidebar)}</small></div></div><div><div class="nav-label">${esc(identity.label)}</div><nav class="nav" id="navigation"><button data-page="overview">${esc(identity.symbol)} &nbsp; Command</button>${app.sections.map(s=>`<button data-page="${esc(s.id)}">${esc(identity.icons[app.sections.indexOf(s)]||"•")} &nbsp; ${esc(s.label)}</button>`).join('')}<button data-page="access">♙ &nbsp; Access control</button></nav></div><div class="footnote"><b>${esc(identity.footer)}</b><br/><span class="connection-dot"></span> Cloudflare Workers · D1<br/>GitHub Actions · continuous delivery</div></aside><main><header class="topbar"><div><div class="eyebrow">${esc(identity.label)}</div><h2 id="page-title"></h2><p id="page-subtitle" class="muted"></p></div><div class="actions"><button class="btn secondary" id="auth">Access key</button><button class="btn secondary" id="refresh">↻ Sync data</button></div></header><div id="message" class="hidden"></div><div id="content"></div></main></div>`;
+function skeleton(){
+ root.innerHTML=renderShell(app,identity,esc);
  document.querySelectorAll('[data-page]').forEach(btn=>btn.addEventListener('click',()=>{page=btn.dataset.page;notice='';render()}));
  document.getElementById('refresh').onclick=()=>render();
- document.getElementById('auth').onclick=()=>{const value=prompt('Enter the ADMIN_TOKEN secret configured in the deployed Cloudflare Worker. Leave blank to clear it. This is stored only in this browser tab.');if(value!==null){if(value)sessionStorage.setItem('portfolio-admin-token',value);else sessionStorage.removeItem('portfolio-admin-token');render()}};
+ document.getElementById('auth').onclick=()=>{const value=prompt('Enter an admin or scoped API token. Leave blank to clear. Stored only in this browser tab.');if(value!==null){if(value)sessionStorage.setItem('portfolio-admin-token',value);else sessionStorage.removeItem('portfolio-admin-token');render()}};
 }
 function title(){document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));const s=app.sections.find(s=>s.id===page);document.getElementById('page-title').textContent=s?.label||(page==='access'?'Access control':'Overview');document.getElementById('page-subtitle').textContent=page==='overview'?app.tagline:'Live data from your own Cloudflare D1 database';paintNotice()}
 async function fieldsHtml(fields){return (await Promise.all(fields.map(async f=>{
@@ -53,7 +55,7 @@ async function renderList(spec){const content=document.getElementById('content')
  try{const data=await api(spec.endpoint);const rows=data.items||[];
   content.innerHTML=(spec.fields?await createForm(spec):'')+panel(spec.label+' · '+rows.length+' records',`<div class="filters"><p class="muted">Records are ordered by the backend. Select Inspect to view complete fields.</p><input class="search" id="filter" placeholder="Filter displayed records..."/></div><div id="data-table">${table(rows,spec.columns||Object.keys(rows[0]||{}),!!spec.action)}</div>`)+`<div id="details"></div>`;
   const listing=document.getElementById('data-table');function bindTable(dataRows){
-   listing.innerHTML=table(dataRows,spec.columns||Object.keys(dataRows[0]||{}),!!spec.action);
+   listing.innerHTML=renderRecords({spec,rows:dataRows,esc});
    listing.querySelectorAll('[data-inspect]').forEach(btn=>btn.onclick=()=>{const row=dataRows[Number(btn.dataset.inspect)];document.getElementById('details').innerHTML=resultCard(row,'Record details');document.getElementById('details').scrollIntoView({behavior:'smooth',block:'nearest'})});
    listing.querySelectorAll('[data-action]').forEach(btn=>btn.onclick=async()=>{const row=dataRows[Number(btn.dataset.action)];const where=document.getElementById('details');where.innerHTML=await actionForm(spec,row.id);
     const form=document.getElementById('action-form');form.onsubmit=async event=>{event.preventDefault();try{const args=readForm(form,spec.action.input||[]);const url=spec.action.endpoint.replace('{id}',encodeURIComponent(row.id));const output=await api(url,spec.action.method||'POST',(spec.action.method==='GET')?undefined:args);

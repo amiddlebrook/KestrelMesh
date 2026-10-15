@@ -29,6 +29,11 @@ for(let attempt=1;attempt<=7;attempt++){
   assert.ok(identityStyle.length>3000,'Domain-specific visual design missing from live Worker');
   const identityApp=await (await check('/experience.js',200)).text();
   assert.ok(identityApp.includes('renderExperience'),'Domain-specific interactive experience missing');
+  const workspaceStyle=await (await check('/workspace.css',200)).text();
+  assert.ok(workspaceStyle.length>2500,'Application-specific workspace styles missing');
+  const workspaceModule=await (await check('/workspace.js',200)).text();
+  assert.ok(workspaceModule.includes('renderShell'),'Independent application shell missing');
+  assert.ok(workspaceModule.includes('k5-shell'),'Wrong product interface deployed');
   const page=await check('/',200);
   const html=await page.text(); assert.ok(html.includes('<html')||html.includes('<!doctype html>'),'HTML shell missing');
   console.log(`Live deployment verified: ${origin} (health, D1 domain API, protected API, static site)`);
