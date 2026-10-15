@@ -24,5 +24,5 @@ test('product workspace is deployed as an independent stylesheet and module',asy
  const js=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
  assert.ok(css.length>2500);assert.match(html,/workspace\.css/);
  assert.match(js,/renderShell\(app,identity,esc\)/);
- assert.match(js,/renderRecords\(\{spec,rows:dataRows,esc\}\)/);
+ assert.match(js,/createRecordWorkbench\(\{/);
 });

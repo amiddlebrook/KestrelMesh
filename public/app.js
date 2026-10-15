@@ -1,9 +1,10 @@
+import {createRecordWorkbench} from './lens.js';
 import {mountSavedViews} from './saved-views.js';
 import {renderAgent} from './agent.js';
 import {renderDecision} from './decision.js';
 import { renderStudio } from './studio.js';
 import { renderOperations } from './ops.js';
-import { renderShell, renderRecords } from './workspace.js';
+import { renderShell } from './workspace.js';
 import { renderDetails } from './details.js';
 import { refineRecords, filtersMarkup } from './explorer.js';
 import { createInterface } from './interaction.js';
@@ -62,35 +63,57 @@ async function createForm(spec){if(!spec.fields)return '';return panel('Create '
 async function actionForm(spec,id){const settings=spec.action,fields=settings?.input||[];
  const content=await fieldsHtml(fields);
  return panel(settings.title,`<form id="action-form">${content}<button class="btn" type="submit">${settings.download?'Export JSON':'Execute action'} →</button></form><p class="muted">Selected record: <code>${esc(id)}</code></p>`)}
-async function renderList(spec){const content=document.getElementById('content');content.innerHTML=panel('Loading','<p class="muted">Fetching records...</p>');
- try{const data=await api(spec.endpoint);const rows=data.items||[];
-  content.innerHTML=(spec.fields?await createForm(spec):'')+panel(spec.label+' · '+rows.length+' records',`${filtersMarkup(rows.length)}<div id="data-table">${table(rows,spec.columns||Object.keys(rows[0]||{}),!!spec.action)}</div>`)+`<div id="details"></div>`;
-  const listing=document.getElementById('data-table');function bindTable(dataRows){
-   listing.innerHTML=renderRecords({spec,rows:dataRows,esc});
-   listing.querySelectorAll('[data-inspect]').forEach(btn=>btn.onclick=()=>{const row=dataRows[Number(btn.dataset.inspect)];const detail=document.getElementById('details');detail.innerHTML=renderDetails(row);detail.querySelector('[data-close-details]').onclick=()=>{detail.replaceChildren();btn.focus()};detail.querySelector('[data-copy-record]').onclick=async()=>{try{await navigator.clipboard.writeText(pretty(row));success('Record JSON copied')}catch{error('Clipboard not available in this browser')}};detail.scrollIntoView({behavior:'smooth',block:'nearest'});detail.querySelector('[data-close-details]').focus()});
-   listing.querySelectorAll('[data-action]').forEach(btn=>btn.onclick=async()=>{const row=dataRows[Number(btn.dataset.action)];const where=document.getElementById('details');where.innerHTML=await actionForm(spec,row.id);
-    const form=document.getElementById('action-form');form.onsubmit=async event=>{event.preventDefault();try{const args=readForm(form,spec.action.input||[]);const url=spec.action.endpoint.replace('{id}',encodeURIComponent(row.id));const output=await api(url,spec.action.method||'POST',(spec.action.method==='GET')?undefined:args);
-      if(spec.action.download){const blob=new Blob([pretty(output)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`${app.name}-${row.id}.json`;a.click();URL.revokeObjectURL(a.href)}else success('Action completed');where.innerHTML=resultCard(output,'Action response');
-    }catch(e){error(e)}};where.scrollIntoView({behavior:'smooth',block:'nearest'})});
-  }
-   let visible=[];
-   const search=document.getElementById('filter'),preset=document.getElementById('enterprise-preset'),order=document.getElementById('enterprise-order');
-   const updateView=()=>{visible=refineRecords(rows,{query:search.value,preset:preset.value,order:order.value});bindTable(visible);document.getElementById('enterprise-record-count').textContent=`${visible.length} of ${rows.length} loaded records`};
-   search.addEventListener('input',updateView);
-   preset.addEventListener('change',updateView);
-   order.addEventListener('change',updateView);
-   document.getElementById('enterprise-export').addEventListener('click',()=>{
-     if(!visible.length){error('No records match your current filter.');return;}
-     const blob=new Blob([pretty(visible)],{type:'application/json'});
-     const href=URL.createObjectURL(blob);
-     const a=document.createElement('a');a.href=href;a.download=`${app.name.toLowerCase()}-${spec.id}-filtered.json`;a.click();
-     setTimeout(()=>URL.revokeObjectURL(href),2000);
-     success(`Exported ${visible.length} currently loaded records. Treat the download as private workspace data.`);
-   });
-   updateView();
-   await mountSavedViews({product:app.name,section:spec.id,api,search,preset,order,apply:updateView,report:message=>{notice=message;noticeType='success';paintNotice()}});
-  const form=document.getElementById('create-form');if(form)form.onsubmit=async ev=>{ev.preventDefault();try{const args=readForm(form,spec.fields);const out=await api(spec.endpoint,'POST',args);success('Created '+(out.id||'record'));render()}catch(e){error(e)}};
- }catch(e){content.innerHTML=panel('Unable to load data',`<p>${esc(e.message)}</p><p class="muted">Run local D1 migrations first. For deployment, configure the ADMIN_TOKEN Worker secret.</p>`)}
+async function renderList(spec){
+ const content=document.getElementById('content');
+ content.innerHTML=panel('Loading','<p class="muted">Fetching records...</p>');
+ try{
+  const data=await api(spec.endpoint);
+  const rows=data.items||[];
+  content.innerHTML=(spec.fields?await createForm(spec):'')+panel(`${spec.label} · ${rows.length} loaded records`,`${filtersMarkup(rows.length)}<div id="data-table"></div>`)+`<div id="details"></div>`;
+  const listing=document.getElementById('data-table');
+  const lens=createRecordWorkbench({host:listing,app,spec,esc,report:success,
+   onInspect:(row,origin)=>{
+    const drawer=document.createElement('dialog');drawer.className='lens-inspector-drawer';
+    drawer.setAttribute('aria-label','Record inspector');drawer.innerHTML=renderDetails(row);
+    document.body.append(drawer);
+    const close=()=>drawer.close();
+    drawer.querySelector('[data-close-details]').addEventListener('click',close);
+    drawer.querySelector('[data-copy-record]').addEventListener('click',async()=>{
+     try{await navigator.clipboard.writeText(pretty(row));success('Record JSON copied')}catch{error('Clipboard not available in this browser')}
+    });
+    drawer.addEventListener('close',()=>{drawer.remove();origin?.focus()},{once:true});drawer.showModal();
+   },
+   onAction:async row=>{
+    const where=document.getElementById('details');where.innerHTML=await actionForm(spec,row.id);
+    const form=document.getElementById('action-form');
+    form.onsubmit=async event=>{event.preventDefault();try{
+     const args=readForm(form,spec.action.input||[]),url=spec.action.endpoint.replace('{id}',encodeURIComponent(row.id));
+     const output=await api(url,spec.action.method||'POST',spec.action.method==='GET'?undefined:args);
+     if(spec.action.download){const blob=new Blob([pretty(output)],{type:'application/json'}),link=URL.createObjectURL(blob),a=document.createElement('a');a.href=link;a.download=`${app.name}-${row.id}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(link),2000)}
+     else success('Action completed');where.innerHTML=resultCard(output,'Action response');
+    }catch(e){error(e)}};
+    where.scrollIntoView({behavior:'smooth',block:'nearest'});form.querySelector('button[type="submit"]')?.focus();
+   }
+  });
+  const search=document.getElementById('filter'),preset=document.getElementById('enterprise-preset'),order=document.getElementById('enterprise-order');
+  let visible=[];
+  const updateView=()=>{
+   visible=refineRecords(rows,{query:search.value,preset:preset.value,order:order.value});
+   const count=lens.render(visible,rows.length);
+   document.getElementById('enterprise-record-count').textContent=`${count} displayed from ${rows.length} loaded records`;
+  };
+  search.addEventListener('input',updateView);preset.addEventListener('change',updateView);order.addEventListener('change',updateView);
+  document.getElementById('enterprise-export').addEventListener('click',()=>{
+   const selected=lens.getDisplayedRows();if(!selected.length){error('No records match the current workspace filters.');return}
+   const blob=new Blob([pretty(selected)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+   a.href=url;a.download=`${app.name.toLowerCase()}-${spec.id}-filtered.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);
+   success(`Exported ${selected.length} displayed records. Treat the download as private workspace data.`);
+  });
+  updateView();
+  await mountSavedViews({product:app.name,section:spec.id,api,search,preset,order,apply:updateView,report:message=>{notice=message;noticeType='success';paintNotice()}});
+  const form=document.getElementById('create-form');
+  if(form)form.onsubmit=async event=>{event.preventDefault();try{const args=readForm(form,spec.fields),output=await api(spec.endpoint,'POST',args);success('Created '+(output.id||'record'));render()}catch(e){error(e)}};
+ }catch(e){content.innerHTML=panel('Unable to load data',`<p>${esc(e.message)}</p><p class="muted">Verify workspace credentials and apply local or remote D1 migrations.</p>`)}
 }
 async function overview(){
  const content=document.getElementById('content');
