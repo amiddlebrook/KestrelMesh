@@ -50,6 +50,7 @@ jobs:
             fi
           done < <(gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts?name=${ART}&per_page=30" --jq '.artifacts[] | select(.expired == false) | .workflow_run.id' | awk '!seen[$0]++')
           test -n "$RUN_ID" || { echo 'No successful main-branch production browser capture artifact'; exit 1; }
+          mkdir -p docs/demo-source
           gh run download "$RUN_ID" --name "$ART" --dir docs/demo-source
           test -s "docs/demo-source/${APP}-desktop-guest.png"
           test -s "docs/demo-source/${APP}-mobile-guest.png"
