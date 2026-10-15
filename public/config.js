@@ -4,10 +4,31 @@ export default {
   "accent": "#d0b082",
   "icon": "⟐",
   "sections": [
-    {"id":"agent","label":"SRE Agent","custom":"agent"},
-    {"id":"decisions","label":"SLO Objectives","custom":"decisions"},
-    {"id":"ops","label":"API Activity","custom":"ops"},
-    {"id":"studio","label":"SLO Console","custom":"studio"},
+    {
+      "id": "atlas",
+      "label": "Live Atlas",
+      "custom": "atlas"
+    },
+    {
+      "id": "agent",
+      "label": "SRE Agent",
+      "custom": "agent"
+    },
+    {
+      "id": "decisions",
+      "label": "SLO Objectives",
+      "custom": "decisions"
+    },
+    {
+      "id": "ops",
+      "label": "API Activity",
+      "custom": "ops"
+    },
+    {
+      "id": "studio",
+      "label": "SLO Console",
+      "custom": "studio"
+    },
     {
       "id": "models",
       "label": "Model Registry",
