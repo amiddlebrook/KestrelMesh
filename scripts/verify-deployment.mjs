@@ -76,8 +76,12 @@ for(let attempt=1;attempt<=7;attempt++){
   assert.ok(lensJs.includes('createRecordWorkbench') && lensJs.includes('csvOf'),'Phase 11 interactive record workbench not deployed');
   const lensCss=await (await check('/lens.css',200)).text();
   assert.ok(lensCss.includes('.lens-workbench') && lensCss.includes('.lens-mast'),'Phase 11 product-specific visual design missing');
+  const spatialJS=await (await check('/operational-map.js',200)).text();
+  assert.ok(spatialJS.includes('renderOperationalMap') && spatialJS.includes('explicitLinks'),'Phase 12 visual operations map missing');
+  const spatialCSS=await (await check('/command-surface.css',200)).text();
+  assert.ok(spatialCSS.includes('.scene-network') && spatialCSS.includes('.scene-plot'),'Phase 12 spatial layout styling missing');
   const page=await check('/',200);
-  const html=await page.text(); assert.ok(html.includes('<html')||html.includes('<!doctype html>'),'HTML shell missing');assert.ok(html.includes('/lens.css'),'Phase 11 visual asset not referenced by application');assert.ok(html.includes('/lens.css'),'Phase 11 visual asset not referenced by application');
+  const html=await page.text(); assert.ok(html.includes('<html')||html.includes('<!doctype html>'),'HTML shell missing');assert.ok(html.includes('/lens.css'),'Phase 11 visual asset not referenced by application');assert.ok(html.includes('/command-surface.css'),'Phase 12 spatial asset missing from application');
   console.log(`Live deployment verified: ${origin} (health, D1 domain API, protected API, static site)`);
   process.exit(0);
  }catch(error){previous=error; if(attempt<7)await new Promise(r=>setTimeout(r,1200*attempt));}
