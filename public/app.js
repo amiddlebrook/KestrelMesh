@@ -1,3 +1,5 @@
+import {requestJSON} from './http.js';
+import {mountUsability} from './usability.js';
 import {renderHome} from './home.js';
 import {renderMission} from './mission.js';
 import {renderAccessConsole} from './access-console.js';
@@ -27,12 +29,8 @@ const success=m=>{notice=m;noticeType='success';paintNotice()};
 const error=e=>{notice=String(e?.message||e);noticeType='error';paintNotice()};
 const token=()=>sessionStorage.getItem('portfolio-admin-token')||'';
 const ui=createInterface({app,token,saveToken:value=>{if(value)sessionStorage.setItem('portfolio-admin-token',value);else sessionStorage.removeItem('portfolio-admin-token')},refresh:()=>render(),navigate:id=>{if(!validPages.has(id))return;page=id;location.hash=id;notice='';render();document.getElementById('page-title')?.focus()}});
-async function api(path,method='GET',data){
- const headers={}; if(token())headers.Authorization='Bearer '+token();if(data!==undefined)headers['Content-Type']='application/json';
- const res=await fetch(path,{method,headers,body:data===undefined?undefined:JSON.stringify(data)});
- const text=await res.text();let out;try{out=JSON.parse(text)}catch{throw new Error('Non-JSON API response: '+text.slice(0,250))}
- if(!res.ok)throw new Error(out.error||`HTTP ${res.status}`);return out;
-}
+async function api(path,method='GET',data){return requestJSON(path,{method,data,token:token()});}
+
 function cell(value){if(value===null||value===undefined)return '—';if(typeof value==='object')return `<span class="muted">${esc(pretty(value).slice(0,100))}</span>`;
  const s=String(value);if(['completed','approved','production','enabled','success'].includes(s))return `<span class="pill">${esc(s)}</span>`;
  if(['failed','rejected','disabled'].includes(s))return `<span class="pill bad">${esc(s)}</span>`;
@@ -49,6 +47,7 @@ function skeleton(){
  document.querySelectorAll('[data-page]').forEach(btn=>btn.addEventListener('click',()=>{page=btn.dataset.page;location.hash=page;notice='';render();document.getElementById('page-title')?.focus()}));
  document.getElementById('refresh').onclick=()=>render();
  ui.hydrate();
+ mountUsability({app,navigate:id=>{if(!validPages.has(id))return;page=id;location.hash=id;notice='';render();document.getElementById('page-title')?.focus()}});
 }
 function title(){document.body.classList.toggle('home-page',page==='overview');document.querySelectorAll('[data-page]').forEach(b=>{const active=b.dataset.page===page;b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});const s=app.sections.find(s=>s.id===page);document.getElementById('page-title').textContent=s?.label||(page==='access'?'Access control':'Network Terminal');document.getElementById('page-subtitle').textContent=page==='overview'?app.tagline:'Live data from your own Cloudflare D1 database';paintNotice()}
 async function fieldsHtml(fields){return (await Promise.all(fields.map(async f=>{

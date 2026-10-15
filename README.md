@@ -209,3 +209,7 @@ A separately designed, API-backed **Network Terminal** opens at `/#overview`, wh
 ## Phase 18 · Security assurance
 
 The API now requires a Bearer credential for every protected route, including `localhost`; the previous implicit local-admin shortcut is removed. Configure `ADMIN_TOKEN` in your ignored `.dev.vars` for local development (use a **different** value from production). Worker and static assets send explicit browser security policies, request JSON is strictly byte-bounded, and scoped operators may remove only their own saved perspectives. New integration tests exercise the actual Worker entrypoint and replay all D1 migrations against SQLite. See [Phase 18 release assurance](docs/RELEASE_ASSURANCE.md). Organization isolation, SSO, immutable audit, and verified full browser E2E remain open requirements.
+
+## Phase 19 — Readability, mobile and transport reliability
+
+Text defaults now avoid microtype: CSS fonts below 13px are raised to a readable minimum (and get extra spacing at mobile sizes). The persistent Standard / Comfortable / Large selector and keyboard-accessible native mobile navigation apply to every app section. See [readability documentation](docs/READABILITY_MOBILE.md). API requests now use same-origin only, bounded request timeouts, no-store cache and non-HTML errors. Cross-viewport QA uses explicitly synthetic fixtures; no claim of certified WCAG conformance.

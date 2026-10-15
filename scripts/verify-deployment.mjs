@@ -113,6 +113,12 @@ for(let attempt=1;attempt<=7;attempt++){
   assert.ok(missionCss.includes('15'),'Phase 15 product-specific flagship styling missing');
   const configJs=await (await check('/config.js',200)).text();
   assert.ok(configJs.includes('mission'),'Phase 15 flagship navigation missing');
+  const mobileModule=await (await check('/usability.js',200)).text();
+  assert.ok(mobileModule.includes('mountUsability') && mobileModule.includes('readingPreference'),'Readable mobile navigation not deployed');
+  const mobileCss=await (await check('/usability.css',200)).text();
+  assert.ok(mobileCss.includes('.mobile-navigation-dialog') && mobileCss.includes('44px'),'Mobile usability styles not deployed');
+  const transport=await (await check('/http.js',200)).text();
+  assert.ok(transport.includes('requestJSON') && transport.includes('AbortSignal.timeout'),'Resilient API transport missing');
   const homeModule=await (await check('/home.js',200)).text();
   assert.ok(homeModule.includes('renderHome') && homeModule.includes('/api/'),'Independent authenticated product homepage missing');
   const homeCss=await (await check('/home.css',200)).text();
