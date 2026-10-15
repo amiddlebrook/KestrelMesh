@@ -27,6 +27,11 @@ for(const workflow of ['ci.yml','deploy.yml']) {
  assert.doesNotMatch(yaml,/run: npm install\b/,`${workflow}: floating npm install is forbidden`);
 }
 const config=JSON.parse(read('wrangler.jsonc'));
+assert.equal(config.vars?.FREE_AI_ENABLED,'false','Production must disable metered AI by default');
+assert.match(read('src/core.ts'),/reserveBudget\(env,'api'/,'Authenticated API requests must have an application budget');
+assert.match(read('src/core.ts'),/reserveFreeAI\(env\)/,'Workers AI must have an opt-in daily budget');
+assert.ok(existsSync(join(root,'tests/phase25.test.mjs')),'Missing free-tier regression test');
+assert.ok(!config.queues&&!config.r2_buckets&&!config.workflows,'New optional resources need free-tier approval before deployment');
 assert.deepEqual(config.triggers?.crons,['0 4 * * *'],'Automated maintenance cron must remain configured');
 const migrations=readdirSync(join(root,'migrations')).filter(f=>/^\d{4}_[a-z0-9_]+\.sql$/.test(f)).sort();
 assert.ok(migrations.length>=11,'All database migrations must be present');
@@ -38,7 +43,7 @@ try {
  assert.equal(db.prepare('PRAGMA integrity_check').get().integrity_check,'ok');
  assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(),[]);
  const tables=db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(v=>v.name);
- for(const table of ['access_keys','access_audit','saved_views','api_write_quota','api_activity','maintenance_status'])assert.ok(tables.includes(table),`Missing required table ${table}`);
+ for(const table of ['access_keys','access_audit','saved_views','api_write_quota','api_activity','maintenance_status','free_tier_budget'])assert.ok(tables.includes(table),`Missing required table ${table}`);
  const quotas=db.prepare("PRAGMA table_info('api_write_quota')").all().map(r=>r.name);
  for(const column of ['identity','minute_bucket','used'])assert.ok(quotas.includes(column),`Missing quota column ${column}`);
 } finally {db.close()}

@@ -10,6 +10,7 @@ export interface Env {
   DB: D1DB;
   AI?: { run(model: string, options: { messages: { role: string; content: string }[]; max_tokens?: number }): Promise<{ response?: string; result?: { response?: string } }> };
   ADMIN_TOKEN?: string;
+  FREE_AI_ENABLED?: string;
 }
 export type Handler = (req: Request, env: Env, url: URL) => Promise<Response>;
 export class HttpError extends Error { constructor(public status: number, message: string, public retryAfter?: number) { super(message) } }
@@ -69,6 +70,8 @@ export function parseObject<T>(value: unknown, fallback: T): T {
 export function number(value: unknown, fallback = 0): number { const x = Number(value); return Number.isFinite(x) ? x : fallback }
 export async function generate(env: Env, system: string, user: string, maxTokens = 512): Promise<string> {
   if (!env.AI) return fail(503, 'Workers AI binding is not configured');
+  const {reserveFreeAI}=await import('./free-tier');
+  await reserveFreeAI(env);
   let result: { response?: string; result?: { response?: string } };
   try { result = await env.AI.run('@cf/meta/llama-3.1-8b-instruct-fp8', {
     messages: [{ role: 'system', content: system }, { role: 'user', content: user }], max_tokens: Math.min(maxTokens, 1024)
@@ -104,6 +107,8 @@ export async function withApi(req: Request, env: Env, fn: Handler): Promise<Resp
   try {
    const access=await import('./access');
    principal=await access.authenticate(req,env,url);
+   const free=await import('./free-tier');
+   await free.reserveBudget(env,'api',free.API_REQUESTS_PER_DAY);
    // Reserve one D1 write quota slot BEFORE any mutating API can execute.
    // Atomic UPSERT prevents concurrent requests from exceeding a credential's budget.
    const quotas=await import('./write-quota');
@@ -113,7 +118,7 @@ export async function withApi(req: Request, env: Env, fn: Handler): Promise<Resp
    const review=await import('./agent-review');
    const catalog=await import('./catalog');
    const views=await import('./views');
-   response=managed || await catalog.catalogApi(req,env,url) || await views.viewsApi(req,env,url,principal) || await review.agentReviewApi(req,env,url,principal) || await operations.operationsApi(req,env,url,principal) || await fn(req,env,url);
+   response=managed || (url.pathname==='/api/free-tier/status' && req.method==='GET' ? json(await free.budgetStatus(env)):null) || await catalog.catalogApi(req,env,url) || await views.viewsApi(req,env,url,principal) || await review.agentReviewApi(req,env,url,principal) || await operations.operationsApi(req,env,url,principal) || await fn(req,env,url);
   } catch(error) {
    if(error instanceof HttpError){
     response=json({error:error.message},error.status);

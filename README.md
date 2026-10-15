@@ -1,3 +1,5 @@
+> **Phase 25 — $0 guardrails:** Daily protected API budgets, opt-in remote AI, fail-closed quotas and quota status. [Policy and limits](docs/ZERO_COST_POLICY.md).
+
 > **Phase 24:** Authenticated API integration regression tests and product-specific reliability safeguards. See [Phase 24 notes](docs/PHASE24_RELIABILITY_AND_SECURITY.md).
 
 > **Phase 23:** Balanced product-specific interface with purposeful action/status/data colors. Token-free routing replay with synthetic traffic presets and comparisons of consecutive routing decisions. Existing history and workflows retained; fully authenticated browser release review remains outstanding.

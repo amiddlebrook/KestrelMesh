@@ -25,5 +25,8 @@
     "crons": [
       "0 4 * * *"
     ]
+  },
+  "vars": {
+    "FREE_AI_ENABLED": "false"
   }
 }
