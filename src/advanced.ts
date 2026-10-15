@@ -19,12 +19,16 @@ export async function releaseHalfOpenProbe(env:Env,modelId:string,leaseId:string
  if(leaseId)await execute(env,'DELETE FROM circuit_leases WHERE model_id=? AND lease_id=?',modelId,leaseId);
 }
 export async function recordCircuit(env:Env,modelId:string,success:boolean):Promise<void>{
- const existing=await first<Circuit>(env,'SELECT * FROM circuit_breakers WHERE model_id=?',modelId);const timestamp=now();
- const state=effectiveState(existing,timestamp),failures=success?0:(state==='half_open'?3:(existing?.consecutive_failures||0)+1);
- const next=success?'closed':failures>=3?'open':state;
- const until=next==='open'?new Date(Date.now()+60000).toISOString():null;
- await execute(env,'INSERT INTO circuit_breakers VALUES(?,?,?,?,?) ON CONFLICT(model_id) DO UPDATE SET state=excluded.state,consecutive_failures=excluded.consecutive_failures,opened_until=excluded.opened_until,updated_at=excluded.updated_at',modelId,next,failures,until,timestamp);
- if(next!==state)await execute(env,'INSERT INTO circuit_events VALUES(?,?,?,?,?,?)',uid(),modelId,state,next,success?'Provider recovered':'Provider failures exceeded threshold',timestamp);
+ // A single D1 statement observes the current counter at write time. No stale read/modify/write race.
+ const timestamp=now(),until=new Date(Date.now()+60000).toISOString();
+ const failureScore="CASE WHEN circuit_breakers.state='half_open' OR (circuit_breakers.state='open' AND circuit_breakers.opened_until<=excluded.updated_at) THEN 3 ELSE MIN(circuit_breakers.consecutive_failures+1,1000000000) END";
+ const update=success
+  ? "state='closed',consecutive_failures=0,opened_until=NULL,updated_at=excluded.updated_at"
+  : `state=CASE WHEN (${failureScore})>=3 THEN 'open' ELSE circuit_breakers.state END,consecutive_failures=${failureScore},opened_until=CASE WHEN (${failureScore})>=3 THEN ? ELSE circuit_breakers.opened_until END,updated_at=excluded.updated_at`;
+ const sql=`INSERT INTO circuit_breakers(model_id,state,consecutive_failures,opened_until,updated_at) VALUES(?,'closed',?,NULL,?) ON CONFLICT(model_id) DO UPDATE SET ${update}`;
+ if(success)await execute(env,sql,modelId,0,timestamp);
+ else await execute(env,sql,modelId,1,timestamp,until);
+ // The database trigger records state transitions inside this same atomic write.
 }
 export async function advancedApi(req:Request,env:Env,url:URL):Promise<Response|null>{
  const p=url.pathname,m=req.method;
@@ -37,9 +41,7 @@ export async function advancedApi(req:Request,env:Env,url:URL):Promise<Response|
  const reset=p.match(/^\/api\/circuits\/([^/]+)\/reset$/);
  if(reset&&m==='POST'){
   const model=await first<{id:string}>(env,'SELECT id FROM models WHERE id=?',reset[1]);if(!model)fail(404,'Model not found');
-  const prev=await first<Circuit>(env,'SELECT * FROM circuit_breakers WHERE model_id=?',model.id);
   await execute(env,"INSERT INTO circuit_breakers VALUES(?,'closed',0,NULL,?) ON CONFLICT(model_id) DO UPDATE SET state='closed',consecutive_failures=0,opened_until=NULL,updated_at=excluded.updated_at",model.id,now());
-  await execute(env,'INSERT INTO circuit_events VALUES(?,?,?,?,?,?)',uid(),model.id,prev?.state||'closed','closed','Operator reset',now());
   return json({model_id:model.id,state:'closed'});
  }
  return null;
