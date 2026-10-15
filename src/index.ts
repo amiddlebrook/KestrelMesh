@@ -55,4 +55,15 @@ export async function api(req:Request,env:Env,url:URL):Promise<Response>{
  if(p==='/api/seed'&&m==='POST'){const row=await first<{n:number}>(env,'SELECT count(*) n FROM models');if(count(row))return json({ok:true,seeded:false});await execute(env,'INSERT INTO models VALUES(?,?,?,?,?,?,?)',uid(),'Deterministic demo','fixture','fixture',10,1,now());await execute(env,'INSERT INTO models VALUES(?,?,?,?,?,?,?)',uid(),'Llama 3.1 8B','workers_ai',ALLOWED_MODELS[0],20,1,now());return json({ok:true,seeded:true})}
  return fail(404,'Unknown API route');
 }
-export default {fetch(req:Request,env:Env){return withApi(req,env,api)}};
+export default {
+ fetch(req:Request,env:Env){return withApi(req,env,api)},
+ async scheduled(controller:{cron:string},env:Env):Promise<void> {
+  // Scheduled events are Cloudflare-internal. Never expose this action through HTTP.
+  if(controller.cron!=='0 4 * * *')throw new Error('Unknown maintenance schedule');
+  const {cleanupWriteQuota}=await import('./write-quota');
+  const removed=await cleanupWriteQuota(env);
+  await execute(env,`INSERT INTO maintenance_status(job,ran_at,rows_pruned) VALUES(?,?,?)
+  ON CONFLICT(job) DO UPDATE SET ran_at=excluded.ran_at,rows_pruned=excluded.rows_pruned`,
+  'write-quota',now(),removed);
+ }
+};

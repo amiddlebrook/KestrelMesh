@@ -48,6 +48,10 @@ for(let attempt=1;attempt<=7;attempt++){
   const accessInsights=await (await check('/api/access/insights',200,token)).json();
   assert.ok(typeof accessInsights.credentials.active==='number' && Array.isArray(accessInsights.active_scopes),'Phase 14 security insights unavailable');
   await check('/api/access/insights',401);
+  const maintenance=await (await check('/api/access/maintenance',200,token)).json();
+  assert.equal(maintenance.schedule,'0 4 * * *','Phase 21 scheduled quota maintenance was not deployed');
+  assert.equal(maintenance.retention_hours,24,'Incorrect quota retention window');
+  await check('/api/access/maintenance',401);
   const accessUi=await (await check('/access-console.js',200)).text();
   assert.ok(accessUi.includes('renderAccessConsole') && accessUi.includes('secretDialog'),'Phase 14 access console unavailable');
   const accessCss=await (await check('/access-console.css',200)).text();
