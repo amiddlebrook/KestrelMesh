@@ -20,7 +20,7 @@ Policy-driven inference routing with failure isolation.
 
 ## The problem
 
-The hardest part of edge telemetry radar is not drawing a dashboard—it is making consequential decisions inspectable, recoverable and accountable.
+AI requests fail in ways that ordinary HTTP routing often misses: degraded providers, expensive retries, competing recovery probes, and policy drift. KestrelMesh makes backend selection explainable and guards failure counters, circuit transitions, recovery leases, and budget-limited fallbacks.
 
 **KestrelMesh** is an engineering platform for policy-driven inference routing and failure isolation. Its primary audience is **Infrastructure teams routing AI workloads within bounded budgets**. Preview model routes, inspect circuit state and rehearse safe fallbacks.
 
