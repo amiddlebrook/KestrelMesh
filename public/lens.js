@@ -1,4 +1,3 @@
-import {renderOperationalMap, numericFields} from './operational-map.js';
 /** Phase 11 — authenticated record workbench, using only loaded real API data. */
 const profiles={
  RivetFlow:{title:'Process radar',sub:'Live workflow state / loaded register',variant:'assembly',record:'Execution',graph:'PROCESS STATE'},
@@ -14,27 +13,9 @@ const rowTitle = (row,i) => clean(row.name ?? row.title ?? row.workflow ?? row.m
 const safeKey = (row,i) => row?.id!==null && row?.id!==undefined ? `id:${clean(row.id)}` : `position:${i}`;
 const stringify = val => val===undefined||val===null?'—':typeof val==='object'?JSON.stringify(val):String(val);
 const safeCell = (val,esc) => esc(stringify(val).slice(0,240));
-const validMode = mode => ['cards','table','timeline','map'].includes(mode);
+const validMode = mode => ['cards','table','timeline'].includes(mode);
 const size=12;
 
-export function queryAndOrderRecords(rows,{query='',sort='default'}={}){
- const terms=String(query).trim().toLocaleLowerCase().split(/\s+/).filter(Boolean).slice(0,8);
- const filtered=!terms.length?rows.slice():rows.filter(r=>{
-  const haystack=Object.values(r||{}).map(v=>typeof v==='object'?JSON.stringify(v):String(v??'')).join(' ').toLocaleLowerCase();
-  return terms.every(word=>haystack.includes(word));
- });
- if(sort==='default')return filtered;
- const descending=sort.startsWith('-'),key=sort.replace(/^[+-]/,'');
- if(!/^[\w-]{1,64}$/.test(key))return filtered;
- return filtered.map((r,i)=>({r,i})).sort((a,b)=>{
-  const av=a.r[key],bv=b.r[key];
-  let cmp=0;if(av===null||av===undefined)cmp=(bv===null||bv===undefined)?0:1;
-  else if(bv===null||bv===undefined)cmp=-1;
-  else if(typeof av==='number'&&typeof bv==='number')cmp=av-bv;
-  else cmp=String(av).localeCompare(String(bv),undefined,{numeric:true,sensitivity:'base'});
-  return cmp===0?a.i-b.i:descending?-cmp:cmp;
- }).map(x=>x.r);
-}
 export function summarizeRecords(rows){
  const groups=new Map();
  for(const row of rows){const s=statusOf(row);groups.set(s,(groups.get(s)||0)+1)}
@@ -46,7 +27,7 @@ export function csvOf(rows,columns){
 }
 export function createRecordWorkbench({host,app,spec,esc,onInspect,onAction,report}){
  const profile=profiles[app.name]||profiles.RivetFlow;
- let mode='cards',page=0,facet='all',rows=[],display=[],shown=[],selected=new Map(),loadedCount=0,query='',sort='default',metric='';
+ let mode='cards',page=0,facet='all',rows=[],display=[],shown=[],selected=new Map(),loadedCount=0;
  try{const persisted=localStorage.getItem(`portfolio-lens:${app.name}:${spec.id}`);if(validMode(persisted))mode=persisted}catch{}
  const columns=spec.columns||[];
  const exportData=(data,name,type)=>{
@@ -72,12 +53,12 @@ export function createRecordWorkbench({host,app,spec,esc,onInspect,onAction,repo
   const existing=new Set(rows.map((r,i)=>safeKey(r,i)));for(const k of selected.keys())if(!existing.has(k))selected.delete(k);
   const facets=summarizeRecords(rows);
   if(facet!=='all'&&!facets.some(x=>x.name===facet))facet='all';
-  display=queryAndOrderRecords(facet==='all'?rows:rows.filter(r=>statusOf(r)===facet),{query,sort});
+  display=facet==='all'?rows:rows.filter(r=>statusOf(r)===facet);
   const totalPages=Math.max(1,Math.ceil(display.length/size));page=Math.min(page,totalPages-1);
   const start=page*size;
   shown=display.slice(start,start+size).map((row,i)=>({row,index:start+i}));
-  const views=['cards','table','timeline','map'].map(id=>`<button type="button" data-lens-mode="${id}" aria-pressed="${mode===id}" class="lens-mode${mode===id?' active':''}">${{cards:'◫ Cards',table:'☷ Data grid',timeline:'◇ Timeline',map:'◉ Spatial canvas'}[id]}</button>`).join('');
-  host.innerHTML=`<section class="lens-workbench lens-${profile.variant}" aria-label="${esc(profile.title)}"><div class="lens-mast"><div><span class="lens-kicker">${esc(app.name.toUpperCase())} / INTELLIGENCE SURFACE</span><h3>${esc(profile.title)}</h3><p>${esc(profile.sub)}. Real data from the current authorized API response.</p></div><div class="lens-counter"><strong>${display.length}</strong><span>VISIBLE / ${loadedCount} LOADED</span></div></div>${stageGraph(rows,facets)}<div class="lens-querybar"><label class="lens-query-label" for="lens-query-${esc(spec.id)}"><span>Search within results</span><input id="lens-query-${esc(spec.id)}" data-lens-query type="search" spellcheck="false" placeholder="Find terms, identifiers, fields…" value="${esc(query)}" aria-label="Search loaded records" autocomplete="off" /></label><label class="lens-sort-label"><span>Sort visible data</span><select data-lens-sort aria-label="Sort loaded records"><option value="default">API order</option>${[...new Set(['created_at','updated_at','status','name',...columns,...numericFields(rows)])].filter(k=>/^[\w-]{1,64}$/.test(k)).flatMap(k=>[['+'+k,`↑ ${label(k)}`],['-'+k,`↓ ${label(k)}`]]).map(([v,l])=>`<option value="${esc(v)}" ${sort===v?'selected':''}>${esc(l)}</option>`).join('')}</select></label><div class="lens-query-stats"><b>${display.length}</b><span>matching · ${facets.length} observed states</span></div></div><div class="lens-controlbar"><div class="lens-modes" role="group" aria-label="Record layout">${views}</div><div class="lens-controls"><button class="lens-tool" type="button" data-lens-reset ${facet==='all'?'disabled':''}>Clear status</button><button class="lens-tool" type="button" data-lens-csv ${display.length?'':'disabled'}>↓ Export CSV</button><button class="lens-tool lens-compare" type="button" data-lens-compare ${selected.size>=2?'':'disabled'}>Compare ${selected.size?selected.size+' selected':''}</button></div></div><div class="lens-result" aria-live="polite">${display.length?mode==='map'?renderOperationalMap({appName:app.name,rows:display,escape:esc,metric}):mode==='table'?table(shown):mode==='timeline'?timeline(shown):`<div class="lens-cards">${shown.map(x=>card(x.row,x.index)).join('')}</div>`:'<div class="lens-no-matches">No loaded records match this view. Clear the status filter or adjust the search above.</div>'}</div><footer class="lens-pagination"><span>${display.length?mode==='map'?`${display.length} filtered records in spatial canvas`:`${start+1}–${Math.min(start+size,display.length)} of ${display.length}`:'0 records'} · Showing only records returned by this API call</span><div ${mode==='map'?'hidden':''}><button class="lens-tool" type="button" data-lens-prev ${page===0?'disabled':''}>← Previous</button><span>Page ${page+1} / ${totalPages}</span><button class="lens-tool" type="button" data-lens-next ${page>=totalPages-1?'disabled':''}>Next →</button></div></footer></section>`;
+  const views=['cards','table','timeline'].map(id=>`<button type="button" data-lens-mode="${id}" aria-pressed="${mode===id}" class="lens-mode${mode===id?' active':''}">${{cards:'◫ Cards',table:'☷ Data grid',timeline:'◇ Timeline'}[id]}</button>`).join('');
+  host.innerHTML=`<section class="lens-workbench lens-${profile.variant}" aria-label="${esc(profile.title)}"><div class="lens-mast"><div><span class="lens-kicker">${esc(app.name.toUpperCase())} / INTELLIGENCE SURFACE</span><h3>${esc(profile.title)}</h3><p>${esc(profile.sub)}. Real data from the current authorized API response.</p></div><div class="lens-counter"><strong>${display.length}</strong><span>VISIBLE / ${loadedCount} LOADED</span></div></div>${stageGraph(rows,facets)}<div class="lens-controlbar"><div class="lens-modes" role="group" aria-label="Record layout">${views}</div><div class="lens-controls"><button class="lens-tool" type="button" data-lens-reset ${facet==='all'?'disabled':''}>Clear status</button><button class="lens-tool" type="button" data-lens-csv ${display.length?'':'disabled'}>↓ Export CSV</button><button class="lens-tool lens-compare" type="button" data-lens-compare ${selected.size>=2?'':'disabled'}>Compare ${selected.size?selected.size+' selected':''}</button></div></div><div class="lens-result" aria-live="polite">${display.length?mode==='table'?table(shown):mode==='timeline'?timeline(shown):`<div class="lens-cards">${shown.map(x=>card(x.row,x.index)).join('')}</div>`:'<div class="lens-no-matches">No loaded records match this view. Clear the status filter or adjust the search above.</div>'}</div><footer class="lens-pagination"><span>${display.length?`${start+1}–${Math.min(start+size,display.length)} of ${display.length}`:'0 records'} · Showing only records returned by this API call</span><div><button class="lens-tool" type="button" data-lens-prev ${page===0?'disabled':''}>← Previous</button><span>Page ${page+1} / ${totalPages}</span><button class="lens-tool" type="button" data-lens-next ${page>=totalPages-1?'disabled':''}>Next →</button></div></footer></section>`;
   return display.length;
  };
  const compare=()=>{
@@ -99,19 +80,7 @@ export function createRecordWorkbench({host,app,spec,esc,onInspect,onAction,repo
   if(btn.hasAttribute('data-lens-inspect')){const row=display[Number(btn.dataset.lensInspect)];if(row)onInspect(row,btn);return}
   if(btn.hasAttribute('data-lens-action')){const row=display[Number(btn.dataset.lensAction)];if(row)onAction(row,btn)}
  });
- host.addEventListener('input',event=>{
-  const input=event.target.closest('input[data-lens-query]');if(!input||!host.contains(input))return;
-  const start=input.selectionStart??query.length,end=input.selectionEnd??query.length;
-  query=input.value;page=0;render(rows);
-  const next=host.querySelector('[data-lens-query]');if(next){next.focus();try{next.setSelectionRange(start,end)}catch{}}
- });
  host.addEventListener('change',event=>{
-  const order=event.target.closest('select[data-lens-sort]');if(order&&host.contains(order)){
-   sort=order.value;page=0;render(rows);host.querySelector('[data-lens-sort]')?.focus();return;
-  }
-  const chosen=event.target.closest('select[data-scene-metric]');if(chosen&&host.contains(chosen)){
-   metric=chosen.value;render(rows);host.querySelector('[data-scene-metric]')?.focus();return;
-  }
   const field=event.target.closest('input[data-lens-select]');if(!field||!host.contains(field))return;
   const index=Number(field.dataset.lensSelect),row=display[index];if(!row)return;const key=keyOf(row);
   if(field.checked)selected.set(key,row);else selected.delete(key);render(rows);host.querySelector(`[data-lens-select=\"${index}\"]`)?.focus();

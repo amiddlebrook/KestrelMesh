@@ -1,3 +1,4 @@
+import {domainLabApi} from './domain-lab';
 import {agentApi} from './agent';
 import {decisionApi} from './decision';
 import {studioApi} from './studio';
@@ -32,6 +33,7 @@ export async function api(req:Request,env:Env,url:URL):Promise<Response>{
   const decision=await decisionApi(req,env,url); if(decision) return decision;
   const studio=await studioApi(req,env,url); if(studio) return studio;
   const enhanced=await advancedApi(req,env,url); if(enhanced) return enhanced;
+  const lab=await domainLabApi(req,env,url); if(lab) return lab;
  if(p==='/api/overview'&&m==='GET') {const [models,reqs,errors]=await Promise.all([first<{n:number}>(env,'SELECT count(*) n FROM models'),first<{n:number}>(env,'SELECT count(*) n FROM requests'),first<{n:number}>(env,"SELECT count(*) n FROM requests WHERE status='failed'")]);return json({metrics:[{label:'Registered models',value:count(models)},{label:'Inference requests',value:count(reqs)},{label:'Errors',value:count(errors)},{label:'p95 latency (ms)',value:(await metrics(env)).p95_ms??'—'}],recent:await list(env,'SELECT * FROM requests ORDER BY created_at DESC LIMIT 8')})}
  if(p==='/api/models'&&m==='GET')return json({items:await list(env,'SELECT * FROM models ORDER BY priority ASC,created_at DESC LIMIT ?',limit(url))});
  if(p==='/api/models'&&m==='POST'){const b=await body(req),id=uid(),provider=oneOf(b.provider,['fixture','workers_ai'],'provider');const ref=provider==='fixture'?'fixture':oneOf(b.model_ref,ALLOWED_MODELS,'model_ref');await execute(env,'INSERT INTO models VALUES(?,?,?,?,?,?,?)',id,required(b.name,'name'),provider,ref,Math.max(1,Math.min(100,Number(b.priority)||10)),1,now());return json({id},201)}
