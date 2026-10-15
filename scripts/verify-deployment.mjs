@@ -36,6 +36,13 @@ for(let attempt=1;attempt<=7;attempt++){
   assert.ok(agentCSS.includes('agent-workspace') && agentCSS.includes('ag-review'),'Agent design asset missing');
   const accessMe=await (await check('/api/access/me',200,token)).json();
   assert.equal(accessMe.kind,'root','Production root access was not accepted');
+  const accessInsights=await (await check('/api/access/insights',200,token)).json();
+  assert.ok(typeof accessInsights.credentials.active==='number' && Array.isArray(accessInsights.active_scopes),'Phase 14 security insights unavailable');
+  await check('/api/access/insights',401);
+  const accessUi=await (await check('/access-console.js',200)).text();
+  assert.ok(accessUi.includes('renderAccessConsole') && accessUi.includes('secretDialog'),'Phase 14 access console unavailable');
+  const accessCss=await (await check('/access-console.css',200)).text();
+  assert.ok(accessCss.includes('.ac-mast') && accessCss.includes('.ac-key'),'Phase 14 visual identity missing');
   const inventory=await (await check('/api/access/keys',200,token)).json();
   assert.ok(Array.isArray(inventory.items),'Credential migration not present in production');
   await check('/api/access/keys',401);

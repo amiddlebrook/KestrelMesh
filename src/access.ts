@@ -44,6 +44,31 @@ export async function accessApi(req:Request,env:Env,url:URL,principal:Principal)
   if (p==='/api/access/me' && req.method==='GET') return json({kind:principal.kind,role:principal.role,id:principal.id,label:principal.label,route_prefix:principal.prefix});
   if (!p.startsWith('/api/access/')) return null;
   if (principal.role!=='admin') fail(403,'Only the root administrator may manage credentials');
+
+  if (p==='/api/access/insights' && req.method==='GET') {
+    const current=now();
+    const inSeven=new Date(Date.now()+7*86400000).toISOString();
+    const stale=new Date(Date.now()-30*86400000).toISOString();
+    const since=new Date(Date.now()-7*86400000).toISOString();
+    const [summary,roleBreakdown,atRisk,mutations]=await Promise.all([
+      first<{total:number;active:number;revoked:number;expired:number;expiring:number;never_used:number;dormant:number}>(env,`SELECT COUNT(*) total,
+        COALESCE(SUM(CASE WHEN revoked_at IS NULL AND expires_at>? THEN 1 ELSE 0 END),0) active,
+        COALESCE(SUM(CASE WHEN revoked_at IS NOT NULL THEN 1 ELSE 0 END),0) revoked,
+        COALESCE(SUM(CASE WHEN revoked_at IS NULL AND expires_at<=? THEN 1 ELSE 0 END),0) expired,
+        COALESCE(SUM(CASE WHEN revoked_at IS NULL AND expires_at>? AND expires_at<=? THEN 1 ELSE 0 END),0) expiring,
+        COALESCE(SUM(CASE WHEN revoked_at IS NULL AND expires_at>? AND last_used_at IS NULL THEN 1 ELSE 0 END),0) never_used,
+        COALESCE(SUM(CASE WHEN revoked_at IS NULL AND expires_at>? AND last_used_at<? THEN 1 ELSE 0 END),0) dormant
+        FROM access_keys`,current,current,current,inSeven,current, current,stale),
+      list(env,`SELECT role,route_prefix,COUNT(*) total FROM access_keys WHERE revoked_at IS NULL AND expires_at>? GROUP BY role,route_prefix ORDER BY total DESC LIMIT 50`,current),
+      list(env,`SELECT id,label,role,route_prefix,expires_at,last_used_at FROM access_keys WHERE revoked_at IS NULL AND expires_at>? AND expires_at<=? ORDER BY expires_at ASC LIMIT 30`,current,inSeven),
+      first<{mutations:number;errors:number}>(env,`SELECT COUNT(*) mutations, COALESCE(SUM(CASE WHEN status>=400 THEN 1 ELSE 0 END),0) errors FROM api_activity WHERE created_at>=?`,since)
+    ]);
+    return json({generated_at:current,expiry_horizon_days:7,stale_usage_days:30,
+      credentials:{total:Number(summary?.total||0),active:Number(summary?.active||0),revoked:Number(summary?.revoked||0),expired:Number(summary?.expired||0),expiring:Number(summary?.expiring||0),never_used:Number(summary?.never_used||0),dormant:Number(summary?.dormant||0)},
+      active_scopes:roleBreakdown,expiring_keys:atRisk,
+      activity_7d:{mutations:Number(mutations?.mutations||0),errors:Number(mutations?.errors||0)},
+      limitations:'Root-key administration and route-prefix authorization only. No organizations or tenant isolation, no user SSO, no tamper-evident audit, no read-request telemetry. Counts are observations, not a security guarantee.'});
+  }
   if (p==='/api/access/keys' && req.method==='GET') {
     return json({items:await list(env,'SELECT id,label,role,route_prefix,created_at,expires_at,revoked_at,last_used_at FROM access_keys ORDER BY created_at DESC LIMIT 100')});
   }

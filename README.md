@@ -190,3 +190,7 @@ All authenticated record sections now support three layouts (cards, data grid, t
 
 Open **Records Explorer** in the sidebar. It queries `/api/catalog` via the existing Bearer authentication boundary, uses D1-backed descending keyset pagination, server-side keyword/status filtering, exact filtered counts and accessible per-record inspection. Only allowlisted tables and columns are queried. Cursor values are request-bound and invalidated when filters change. Existing CRUD endpoints are unchanged. No additional paid services. Apply migration `0010_catalog_indexes.sql` during deployment.
 
+
+### Phase 14 · Access Intelligence
+
+Root-only credential governance now includes `/api/access/insights` with seven-day expiry monitoring, permission-scope distribution, and a dedicated interactive Security Access workspace. Keys remain one-time revealed and D1-scoped; this release **does not implement multi-tenant data isolation**. See [Access Intelligence](docs/ACCESS_INTELLIGENCE.md).
