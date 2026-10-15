@@ -39,6 +39,8 @@ jobs:
         run: npm run check
       - name: Test application contracts
         run: npm test
+      - name: Verify repository, Worker and isolated D1 target identity
+        run: npm run verify:identity
       - name: Rehearse a clean database restore with synthetic application data
         run: npm run verify:recovery
       - name: Provision and migrate D1

@@ -25,3 +25,4 @@ jobs:
       - run: npm run verify:assets
       - run: npm test
       - run: npm run verify:recovery
+      - run: npm run verify:identity
