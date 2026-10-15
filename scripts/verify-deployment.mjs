@@ -11,6 +11,15 @@ for(let attempt=1;attempt<=7;attempt++){
  try {
   const response=await check('/api/health',200);
   const health=await response.json();assert.equal(health.ok,true);
+  assert.equal(response.headers.get('X-Frame-Options'),'DENY','Worker API must disallow framing');
+  assert.equal(response.headers.get('X-Content-Type-Options'),'nosniff','Worker API must protect MIME types');
+  assert.equal(response.headers.get('Cache-Control'),'no-store','Worker API must not be cached');
+  assert.match(response.headers.get('Content-Security-Policy')||'',/default-src 'none'/,'Missing Worker API CSP');
+  const publicPage=await check('/',200);
+  assert.equal(publicPage.headers.get('X-Frame-Options'),'DENY','Static app must disallow framing');
+  assert.equal(publicPage.headers.get('X-Content-Type-Options'),'nosniff','Static assets must prevent MIME sniffing');
+  assert.match(publicPage.headers.get('Content-Security-Policy')||'',/script-src 'self'/,'Static app must block inline scripts');
+
   await check('/api/overview',401);
   const token=process.env.APP_ADMIN_TOKEN;
   if(!token)throw new Error('Missing APP_ADMIN_TOKEN: authenticated smoke testing is required');
