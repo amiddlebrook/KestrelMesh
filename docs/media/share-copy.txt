@@ -1,0 +1,1 @@
+KestrelMesh explores reliable inference routing with guarded circuit breakers, fallback planning and transparent traffic evidence. It fails closed when free inference is disabled.
