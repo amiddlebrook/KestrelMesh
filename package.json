@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
-    "check": "tsc --noEmit && node --check public/app.js && node --check public/config.js && node --check public/experience.js && node --check public/workspace.js",
-    "test": "node scripts/compile-tests.mjs && node --test tests/smoke.test.mjs tests/integration.test.mjs tests/advanced.test.mjs tests/security.test.mjs tests/identity.test.mjs tests/phase3.test.mjs tests/access.test.mjs tests/workspace.test.mjs",
+    "check": "tsc --noEmit && node --check public/app.js && node --check public/config.js && node --check public/experience.js && node --check public/workspace.js && node --check public/interaction.js && node --check public/details.js && node --check public/explorer.js",
+    "test": "node scripts/compile-tests.mjs && node --test tests/smoke.test.mjs tests/integration.test.mjs tests/advanced.test.mjs tests/security.test.mjs tests/identity.test.mjs tests/phase3.test.mjs tests/access.test.mjs tests/workspace.test.mjs tests/interface-quality.test.mjs tests/explorer.test.mjs",
     "db:local": "wrangler d1 migrations apply DB --local",
     "db:remote": "wrangler d1 migrations apply DB --remote",
     "deploy": "wrangler deploy",

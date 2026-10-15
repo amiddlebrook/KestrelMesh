@@ -1,15 +1,21 @@
 import { renderShell, renderRecords } from './workspace.js';
+import { renderDetails } from './details.js';
+import { refineRecords, filtersMarkup } from './explorer.js';
+import { createInterface } from './interaction.js';
 import { renderExperience, enrichSection, identity } from './experience.js';
 import app from './config.js';
 const root=document.getElementById('app');
 document.body.dataset.product=app.name.toLowerCase();
-let page='overview',lastResult=null,notice='',noticeType='success';
+const validPages=new Set(['overview','access',...app.sections.map(section=>section.id)]);
+const routeFromHash=()=>{try{const id=decodeURIComponent(location.hash.slice(1));return validPages.has(id)?id:'overview'}catch{return 'overview'}};
+let page=routeFromHash(),lastResult=null,notice='',noticeType='success';
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const pretty=x=>JSON.stringify(x,null,2);
 const col=x=>x.replace(/_/g,' ');
 const success=m=>{notice=m;noticeType='success';paintNotice()};
 const error=e=>{notice=String(e?.message||e);noticeType='error';paintNotice()};
 const token=()=>sessionStorage.getItem('portfolio-admin-token')||'';
+const ui=createInterface({app,token,saveToken:value=>{if(value)sessionStorage.setItem('portfolio-admin-token',value);else sessionStorage.removeItem('portfolio-admin-token')},refresh:()=>render(),navigate:id=>{if(!validPages.has(id))return;page=id;location.hash=id;notice='';render();document.getElementById('page-title')?.focus()}});
 async function api(path,method='GET',data){
  const headers={}; if(token())headers.Authorization='Bearer '+token();if(data!==undefined)headers['Content-Type']='application/json';
  const res=await fetch(path,{method,headers,body:data===undefined?undefined:JSON.stringify(data)});
@@ -29,11 +35,11 @@ function metrics(items){return `<div class="grid">${(items||[]).map(item=>`<div 
 function paintNotice(){const el=document.getElementById('message');if(!el)return;el.className=notice?'notice '+noticeType:'hidden';el.textContent=notice;}
 function skeleton(){
  root.innerHTML=renderShell(app,identity,esc);
- document.querySelectorAll('[data-page]').forEach(btn=>btn.addEventListener('click',()=>{page=btn.dataset.page;notice='';render()}));
+ document.querySelectorAll('[data-page]').forEach(btn=>btn.addEventListener('click',()=>{page=btn.dataset.page;location.hash=page;notice='';render();document.getElementById('page-title')?.focus()}));
  document.getElementById('refresh').onclick=()=>render();
- document.getElementById('auth').onclick=()=>{const value=prompt('Enter an admin or scoped API token. Leave blank to clear. Stored only in this browser tab.');if(value!==null){if(value)sessionStorage.setItem('portfolio-admin-token',value);else sessionStorage.removeItem('portfolio-admin-token');render()}};
+ ui.hydrate();
 }
-function title(){document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));const s=app.sections.find(s=>s.id===page);document.getElementById('page-title').textContent=s?.label||(page==='access'?'Access control':'Overview');document.getElementById('page-subtitle').textContent=page==='overview'?app.tagline:'Live data from your own Cloudflare D1 database';paintNotice()}
+function title(){document.querySelectorAll('[data-page]').forEach(b=>{const active=b.dataset.page===page;b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});const s=app.sections.find(s=>s.id===page);document.getElementById('page-title').textContent=s?.label||(page==='access'?'Access control':'Overview');document.getElementById('page-subtitle').textContent=page==='overview'?app.tagline:'Live data from your own Cloudflare D1 database';paintNotice()}
 async function fieldsHtml(fields){return (await Promise.all(fields.map(async f=>{
  const id='field-'+f.name;let field='';let def=f.default??'';
  if(f.type==='json'){field=`<textarea id="${id}" name="${f.name}" class="large" spellcheck="false">${esc(pretty(def||{}))}</textarea>`}
@@ -53,23 +59,36 @@ async function actionForm(spec,id){const settings=spec.action,fields=settings?.i
  return panel(settings.title,`<form id="action-form">${content}<button class="btn" type="submit">${settings.download?'Export JSON':'Execute action'} →</button></form><p class="muted">Selected record: <code>${esc(id)}</code></p>`)}
 async function renderList(spec){const content=document.getElementById('content');content.innerHTML=panel('Loading','<p class="muted">Fetching records...</p>');
  try{const data=await api(spec.endpoint);const rows=data.items||[];
-  content.innerHTML=(spec.fields?await createForm(spec):'')+panel(spec.label+' · '+rows.length+' records',`<div class="filters"><p class="muted">Records are ordered by the backend. Select Inspect to view complete fields.</p><input class="search" id="filter" placeholder="Filter displayed records..."/></div><div id="data-table">${table(rows,spec.columns||Object.keys(rows[0]||{}),!!spec.action)}</div>`)+`<div id="details"></div>`;
+  content.innerHTML=(spec.fields?await createForm(spec):'')+panel(spec.label+' · '+rows.length+' records',`${filtersMarkup(rows.length)}<div id="data-table">${table(rows,spec.columns||Object.keys(rows[0]||{}),!!spec.action)}</div>`)+`<div id="details"></div>`;
   const listing=document.getElementById('data-table');function bindTable(dataRows){
    listing.innerHTML=renderRecords({spec,rows:dataRows,esc});
-   listing.querySelectorAll('[data-inspect]').forEach(btn=>btn.onclick=()=>{const row=dataRows[Number(btn.dataset.inspect)];document.getElementById('details').innerHTML=resultCard(row,'Record details');document.getElementById('details').scrollIntoView({behavior:'smooth',block:'nearest'})});
+   listing.querySelectorAll('[data-inspect]').forEach(btn=>btn.onclick=()=>{const row=dataRows[Number(btn.dataset.inspect)];const detail=document.getElementById('details');detail.innerHTML=renderDetails(row);detail.querySelector('[data-close-details]').onclick=()=>{detail.replaceChildren();btn.focus()};detail.querySelector('[data-copy-record]').onclick=async()=>{try{await navigator.clipboard.writeText(pretty(row));success('Record JSON copied')}catch{error('Clipboard not available in this browser')}};detail.scrollIntoView({behavior:'smooth',block:'nearest'});detail.querySelector('[data-close-details]').focus()});
    listing.querySelectorAll('[data-action]').forEach(btn=>btn.onclick=async()=>{const row=dataRows[Number(btn.dataset.action)];const where=document.getElementById('details');where.innerHTML=await actionForm(spec,row.id);
     const form=document.getElementById('action-form');form.onsubmit=async event=>{event.preventDefault();try{const args=readForm(form,spec.action.input||[]);const url=spec.action.endpoint.replace('{id}',encodeURIComponent(row.id));const output=await api(url,spec.action.method||'POST',(spec.action.method==='GET')?undefined:args);
       if(spec.action.download){const blob=new Blob([pretty(output)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`${app.name}-${row.id}.json`;a.click();URL.revokeObjectURL(a.href)}else success('Action completed');where.innerHTML=resultCard(output,'Action response');
     }catch(e){error(e)}};where.scrollIntoView({behavior:'smooth',block:'nearest'})});
   }
-  bindTable(rows);
-  document.getElementById('filter').oninput=e=>{const q=e.target.value.toLowerCase();bindTable(rows.filter(row=>JSON.stringify(row).toLowerCase().includes(q)))};
+   let visible=[];
+   const search=document.getElementById('filter'),preset=document.getElementById('enterprise-preset'),order=document.getElementById('enterprise-order');
+   const updateView=()=>{visible=refineRecords(rows,{query:search.value,preset:preset.value,order:order.value});bindTable(visible);document.getElementById('enterprise-record-count').textContent=`${visible.length} of ${rows.length} loaded records`};
+   search.addEventListener('input',updateView);
+   preset.addEventListener('change',updateView);
+   order.addEventListener('change',updateView);
+   document.getElementById('enterprise-export').addEventListener('click',()=>{
+     if(!visible.length){error('No records match your current filter.');return;}
+     const blob=new Blob([pretty(visible)],{type:'application/json'});
+     const href=URL.createObjectURL(blob);
+     const a=document.createElement('a');a.href=href;a.download=`${app.name.toLowerCase()}-${spec.id}-filtered.json`;a.click();
+     setTimeout(()=>URL.revokeObjectURL(href),2000);
+     success(`Exported ${visible.length} currently loaded records. Treat the download as private workspace data.`);
+   });
+   updateView();
   const form=document.getElementById('create-form');if(form)form.onsubmit=async ev=>{ev.preventDefault();try{const args=readForm(form,spec.fields);const out=await api(spec.endpoint,'POST',args);success('Created '+(out.id||'record'));render()}catch(e){error(e)}};
  }catch(e){content.innerHTML=panel('Unable to load data',`<p>${esc(e.message)}</p><p class="muted">Run local D1 migrations first. For deployment, configure the ADMIN_TOKEN Worker secret.</p>`)}
 }
 async function overview(){
  const content=document.getElementById('content');
- try{await renderExperience({root:content,api,esc,go:id=>{page=id;render()},success,error});}
+ try{await renderExperience({root:content,api,esc,go:id=>{if(!validPages.has(id))return;page=id;location.hash=id;render()},success,error});}
  catch(e){content.innerHTML=panel('Unable to load workspace',`<p>${esc(e.message)}</p><p class="muted">Enter the Access key to view protected D1 data.</p>`);error(e)}
 }
 async function custom(spec){const el=document.getElementById('content');
@@ -126,4 +145,5 @@ async function renderAccess(){
 }
 
 async function render(){skeleton();title();const spec=app.sections.find(s=>s.id===page);try{if(page==='overview')await overview();else if(page==='access')await renderAccess();else if(spec?.custom)await custom(spec);else if(spec){await renderList(spec);try{await enrichSection({root:document.getElementById('content'),page,api,esc,success,error})}catch(e){console.warn('Workspace enhancement unavailable',e)}};}catch(e){error(e)}}
+addEventListener('hashchange',()=>{const target=routeFromHash();if(target!==page){page=target;render()}});
 render();

@@ -34,6 +34,14 @@ for(let attempt=1;attempt<=7;attempt++){
   const workspaceModule=await (await check('/workspace.js',200)).text();
   assert.ok(workspaceModule.includes('renderShell'),'Independent application shell missing');
   assert.ok(workspaceModule.includes('k5-shell'),'Wrong product interface deployed');
+  const quality=await (await check('/quality.css',200)).text();
+  assert.ok(quality.includes('enterprise-dossier') && quality.includes('enterprise-dialog'),'UI quality controls not deployed');
+  const inspector=await (await check('/details.js',200)).text();
+  assert.ok(inspector.includes('renderDetails'),'Record inspector not deployed');
+  const browser=await (await check('/explorer.js',200)).text();
+  assert.ok(browser.includes('refineRecords'),'Domain-specific data explorer not deployed');
+  const keyboard=await (await check('/interaction.js',200)).text();
+  assert.ok(keyboard.includes('createInterface') && keyboard.includes('showModal()'),'Keyboard navigation or access dialog not deployed');
   const page=await check('/',200);
   const html=await page.text(); assert.ok(html.includes('<html')||html.includes('<!doctype html>'),'HTML shell missing');
   console.log(`Live deployment verified: ${origin} (health, D1 domain API, protected API, static site)`);
