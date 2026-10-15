@@ -1,3 +1,5 @@
+> **Phase 17:** The home route now opens into an interactive product-specific workspace (not a marketing hero). Without credentials, the homepage uses visibly labeled illustrative demo records; connecting an API key unlocks private D1 data. All previous tools remain available.
+
 # KestrelMesh
 
 > **Phase 12: Live Atlas** — A production-deployed, authenticated spatial intelligence view using only records from the existing Workers/D1 APIs, unique entity-specific graph layouts, inspector, keyboard controls, responsive pan/zoom, layer filtering, and privacy-conscious export. [Interaction architecture and limitations](docs/SPATIAL_ATLAS.md).
