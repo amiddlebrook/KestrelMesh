@@ -27,3 +27,10 @@ test('mobile density preserves navigation and reachable 44px controls',()=>{
  assert.match(css,/minmax\(104px,1fr\)/);
  assert.match(css,/enterprise-mode-button/);
 });
+
+test('palette neutralizes the product shell without removing semantic accents',()=>{
+ const css=readFileSync('public/palette-balance.css','utf8');
+ assert.match(css,/Phase 27 visual evidence review/);
+ assert.match(css,/background:\#1[0-9a-f]{5}/i);
+ assert.match(css,/color:\#e[0-9a-f]{5}/i);
+});

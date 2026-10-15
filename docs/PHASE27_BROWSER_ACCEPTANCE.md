@@ -15,3 +15,6 @@ This checks actual production Chromium browser behavior; Firefox and WebKit are 
 
 ## Mobile UX refinement
 The real production 390px screenshots revealed toolbar crowding. The mobile workspace now uses two compact rows: credential/refresh and sections/readability. Low-value desktop keyboard-mode buttons are hidden only on narrow screens; keyboard shortcuts still work, and the full navigation remains reachable through an accessible modal. Product-specific colors, corner treatments, and main workspaces remain independent. Browser acceptance enforces the mobile utility-bar height.
+
+## Visual color review
+Browser screenshots revealed excessive full-surface color tint. The shell, navigation, and data cards now use neutral slate/graphite surfaces. Saturated tones are reserved for interactive focus, model/evaluation signals and operational state. These product-specific overrides do not change business logic.

@@ -22,3 +22,36 @@ body{background:#111b20;color:#e9f1f4}.sidebar{background:#111e26;border-color:#
  .readability-controls .readability-select{width:112px!important;min-width:112px!important;max-width:125px!important;font-size:14px!important;}
  .readability-controls .readability-menu{border-radius:3px!important;background:#15413c!important;color:#b9f4e6!important;border:1px solid #26665e!important;}
 }
+
+/* Phase 27 visual evidence review: operational graphite panels; green signifies health only. */
+.k5-shell{background:#111a22;color:#e5f0f4}
+.k5-systembar{background:#101b25;border-bottom-color:#395563;color:#a5bfcb}
+.k5-cli{color:#e7f4f7}.k5-cursor{color:#e7bf7e}.k5-status{color:#8bdcb0}
+.k5-nav{background:#13222c;border-right-color:#425c69}
+.k5-rackid{border-color:#486572;color:#b7cbd5}.k5-rackid strong{color:#e9f3f5}
+.k5-port-grid{border-color:#435f6b}.k5-port-grid>span{background:#22343f;border-color:#516a76}
+.k5-sections{color:#9bb9c6}
+.k5-nav .nav button{color:#c1d2dc;background:#172935}
+.k5-nav .nav button.active{color:#eefaff;background:#294553;border-left-color:#77d3df}
+.k5-nav-bottom{border-color:#4b6674;color:#a1bccb}
+.k5-terminal{background-image:linear-gradient(#46637324 1px,transparent 1px),linear-gradient(90deg,#46637318 1px,transparent 1px)}
+.k5-command{border-bottom-color:#456270;color:#add2d9}
+.k5-terminal .topbar{border-bottom-color:#455f6d}.k5-terminal .topbar h2{color:#edf6f8}.k5-terminal .topbar .eyebrow{color:#a7c8d3}
+.k5-terminal .panel,.k5-terminal .stat{background:#1e303b;border-color:#486370}
+.km16{background:#131f29;color:#e2eef2}
+.km16-top{background:#1d303b;color:#9fbac6;border-color:#436473}
+.km16-top i{color:#8bdcaa}
+.km17-session{background:#1c303c;color:#abbdca}
+.km17-session span:first-child{color:#edf7fa}.km17-session button{border-color:#587383;color:#bce5ed;background:#233845}
+.km17-cli{background:#182c37;border-color:#4d6a75}.km17-cli label{color:#8bd9e4}
+.km17-cli input{background:#111f29;color:#e5f5f8;border-color:#4c6c7c}
+.km17-cli button{background:#7ccddb;color:#112834}
+.km17-stdout{background:#182934;color:#aec6d0}
+.km16-statusgrid{border-bottom-color:#4e6772}.km16-statusgrid>div{background:#1d303b!important}
+.km16-statusgrid strong{color:#ebf5f8}.km16-statusgrid span,.km16-statusgrid small{color:#a4bdca}
+.km16-rack,.km16-scope{background:#162833;border-color:#435e6e}
+.km16-paneltitle{background:#213642;color:#c2e0e8;border-color:#4d6573}
+.km16-node{background:#19303a;border-color:#45616f}
+.km16-wave{background:#152732}
+.km16-footer{background:#182c38;color:#aac5d1;border-color:#466473}
+.p17-provenance{color:#abd4d8;background:#20333e;border-color:#4f6c77}
