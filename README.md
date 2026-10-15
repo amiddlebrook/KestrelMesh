@@ -213,3 +213,7 @@ The API now requires a Bearer credential for every protected route, including `l
 ## Phase 19 — Readability, mobile and transport reliability
 
 Text defaults now avoid microtype: CSS fonts below 13px are raised to a readable minimum (and get extra spacing at mobile sizes). The persistent Standard / Comfortable / Large selector and keyboard-accessible native mobile navigation apply to every app section. See [readability documentation](docs/READABILITY_MOBILE.md). API requests now use same-origin only, bounded request timeouts, no-store cache and non-HTML errors. Cross-viewport QA uses explicitly synthetic fixtures; no claim of certified WCAG conformance.
+
+### Phase 20 — Enforced credential write budgets
+
+All authenticated mutating requests use an atomic, D1-backed 60-second window: root admin 180 writes/minute; each operator key 60 writes/minute. Read requests do not consume quota; viewers still cannot write. Limit failures return HTTP 429 and a numeric `Retry-After` header, including when callers retry unsupported mutation routes. Database errors fail closed rather than bypassing enforcement. The root-only `/api/access/write-quota` endpoint reports aggregate recent usage without plaintext tokens or hashes. `/api/access/write-quota/prune` deletes buckets older than 24 hours; run this root-only maintenance operation periodically to bound storage. These quotas are not a substitute for edge WAF/DDoS protection, full tenant isolation or a distributed production load test. The new SQL migration `0011_write_quota.sql` is applied automatically by CI/CD.

@@ -113,6 +113,11 @@ for(let attempt=1;attempt<=7;attempt++){
   assert.ok(missionCss.includes('15'),'Phase 15 product-specific flagship styling missing');
   const configJs=await (await check('/config.js',200)).text();
   assert.ok(configJs.includes('mission'),'Phase 15 flagship navigation missing');
+  const quota=await (await check('/api/access/write-quota',200,token)).json();
+  assert.ok(quota.window_seconds===60 && quota.root_limit===180 && quota.operator_limit===60,'Phase 20 D1 quota migration missing');
+  await check('/api/access/write-quota',401);
+  const quotaScreen=await (await check('/access-console.js',200)).text();
+  assert.ok(quotaScreen.includes('LIVE WRITE QUOTA'),'Quota is not visible in Access Intelligence');
   const mobileModule=await (await check('/usability.js',200)).text();
   assert.ok(mobileModule.includes('mountUsability') && mobileModule.includes('readingPreference'),'Readable mobile navigation not deployed');
   const mobileCss=await (await check('/usability.css',200)).text();

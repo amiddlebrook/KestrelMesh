@@ -12,7 +12,7 @@ export interface Env {
   ADMIN_TOKEN?: string;
 }
 export type Handler = (req: Request, env: Env, url: URL) => Promise<Response>;
-export class HttpError extends Error { constructor(public status: number, message: string) { super(message) } }
+export class HttpError extends Error { constructor(public status: number, message: string, public retryAfter?: number) { super(message) } }
 export const now = () => new Date().toISOString();
 export const uid = () => crypto.randomUUID();
 export function json(data: unknown, status = 200): Response { return Response.json(data, { status, headers: { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' } }) }
@@ -104,6 +104,10 @@ export async function withApi(req: Request, env: Env, fn: Handler): Promise<Resp
   try {
    const access=await import('./access');
    principal=await access.authenticate(req,env,url);
+   // Reserve one D1 write quota slot BEFORE any mutating API can execute.
+   // Atomic UPSERT prevents concurrent requests from exceeding a credential's budget.
+   const quotas=await import('./write-quota');
+   await quotas.enforceWriteQuota(req,env,principal);
    const managed=await access.accessApi(req,env,url,principal);
    const operations=await import('./operations');
    const review=await import('./agent-review');
@@ -111,7 +115,10 @@ export async function withApi(req: Request, env: Env, fn: Handler): Promise<Resp
    const views=await import('./views');
    response=managed || await catalog.catalogApi(req,env,url) || await views.viewsApi(req,env,url,principal) || await review.agentReviewApi(req,env,url,principal) || await operations.operationsApi(req,env,url,principal) || await fn(req,env,url);
   } catch(error) {
-   if(error instanceof HttpError)response=json({error:error.message},error.status);
+   if(error instanceof HttpError){
+    response=json({error:error.message},error.status);
+    if(error.status===429&&error.retryAfter)response.headers.set('Retry-After',String(error.retryAfter));
+   }
    else {console.error('Request error',requestId,error);response=json({error:'Internal server error'},500);}
   }
   secure(response,requestId);
