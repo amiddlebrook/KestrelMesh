@@ -175,3 +175,11 @@ The bounded, read-only Workers AI agent provides `GET /api/agents/:id/dossier` (
 ### Phase 10 · Personal perspectives
 
 D1-backed, credential-isolated saved views are available from each authenticated record explorer, with keyboard-friendly controls, section-specific presets, scoped deep links, and focus/density modes. See [`docs/SAVED_VIEWS.md`](docs/SAVED_VIEWS.md).
+
+## Phase 11: Interactive record workbench (October 2026)
+
+All authenticated record sections now support three layouts (cards, data grid, timeline), real loaded-record state distributions, facet filtering, twelve-item pagination, multi-record comparison, protected CSV/JSON exports, and a modal inspector. Distinct domain visual systems remain intact. See [Record workbench design and security](docs/RECORD_WORKBENCH.md). Client-side list navigation operates only on rows returned by the existing API; full server cursor pagination is future work.
+
+## Phase 11: Interactive record workbench (October 2026)
+
+All authenticated record sections now support three layouts (cards, data grid, timeline), real loaded-record state distributions, facet filtering, twelve-item pagination, multi-record comparison, protected CSV/JSON exports, and a modal inspector. Distinct domain visual systems remain intact. See [Record workbench design and security](docs/RECORD_WORKBENCH.md). Client-side list navigation operates only on rows returned by the existing API; full server cursor pagination is future work.
