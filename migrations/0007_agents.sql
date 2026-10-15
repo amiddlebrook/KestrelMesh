@@ -1,0 +1,3 @@
+CREATE TABLE IF NOT EXISTS agent_sessions(id TEXT PRIMARY KEY,objective TEXT NOT NULL,status TEXT NOT NULL CHECK(status IN ('ready','running','completed','needs_review','failed','abandoned')),step_count INTEGER NOT NULL DEFAULT 0,max_steps INTEGER NOT NULL DEFAULT 3,answer TEXT NOT NULL DEFAULT '',error TEXT NOT NULL DEFAULT '',created_at TEXT NOT NULL,updated_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS agent_events(id TEXT PRIMARY KEY,session_id TEXT NOT NULL REFERENCES agent_sessions(id),ordinal INTEGER NOT NULL,kind TEXT NOT NULL CHECK(kind IN ('tool','final')),tool TEXT NOT NULL,payload TEXT NOT NULL,created_at TEXT NOT NULL,UNIQUE(session_id,ordinal));
+CREATE INDEX IF NOT EXISTS idx_agent_sessions_created ON agent_sessions(created_at DESC);

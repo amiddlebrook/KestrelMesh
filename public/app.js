@@ -1,3 +1,5 @@
+import {renderAgent} from './agent.js';
+import {renderDecision} from './decision.js';
 import { renderStudio } from './studio.js';
 import { renderOperations } from './ops.js';
 import { renderShell, renderRecords } from './workspace.js';
@@ -146,6 +148,6 @@ async function renderAccess(){
  }catch(ex){where.innerHTML=panel('Access control unavailable',`<p>${esc(ex.message)}</p><p class="muted">Sign in with your root ADMIN_TOKEN. Delegated credentials may be restricted to other API routes.</p>`)}
 }
 
-async function render(){skeleton();title();const spec=app.sections.find(s=>s.id===page);try{if(page==='overview')await overview();else if(page==='studio')await renderStudio({root:document.getElementById('content'),api,esc,go:id=>{if(!validPages.has(id))return;page=id;location.hash=id;render()},success,error});else if(page==='access')await renderAccess();else if(page==='ops')await renderOperations({root:document.getElementById('content'),api,esc,success,error});else if(spec?.custom)await custom(spec);else if(spec){await renderList(spec);try{await enrichSection({root:document.getElementById('content'),page,api,esc,success,error})}catch(e){console.warn('Workspace enhancement unavailable',e)}};}catch(e){error(e)}}
+async function render(){skeleton();title();const spec=app.sections.find(s=>s.id===page);try{if(page==='overview')await overview();else if(page==='studio')await renderStudio({root:document.getElementById('content'),api,esc,go:id=>{if(!validPages.has(id))return;page=id;location.hash=id;render()},success,error});else if(page==='access')await renderAccess();else if(page==='agent')await renderAgent({root:document.getElementById('content'),api,esc,success,error});else if(page==='decisions')await renderDecision({root:document.getElementById('content'),api,esc,success,error});else if(page==='ops')await renderOperations({root:document.getElementById('content'),api,esc,success,error});else if(spec?.custom)await custom(spec);else if(spec){await renderList(spec);try{await enrichSection({root:document.getElementById('content'),page,api,esc,success,error})}catch(e){console.warn('Workspace enhancement unavailable',e)}};}catch(e){error(e)}}
 addEventListener('hashchange',()=>{const target=routeFromHash();if(target!==page){page=target;render()}});
 render();

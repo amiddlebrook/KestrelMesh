@@ -1,3 +1,5 @@
+import {agentApi} from './agent';
+import {decisionApi} from './decision';
 import {studioApi} from './studio';
 import {disabledByCircuit,recordCircuit,acquireHalfOpenProbe,releaseHalfOpenProbe} from './advanced';
 import { advancedApi } from './advanced';
@@ -26,6 +28,8 @@ async function infer(env:Env,model:Model,prompt:string):Promise<string>{
 }
 export async function api(req:Request,env:Env,url:URL):Promise<Response>{
  const p=url.pathname,m=req.method;
+  const agent=await agentApi(req,env,url); if(agent) return agent;
+  const decision=await decisionApi(req,env,url); if(decision) return decision;
   const studio=await studioApi(req,env,url); if(studio) return studio;
   const enhanced=await advancedApi(req,env,url); if(enhanced) return enhanced;
  if(p==='/api/overview'&&m==='GET') {const [models,reqs,errors]=await Promise.all([first<{n:number}>(env,'SELECT count(*) n FROM models'),first<{n:number}>(env,'SELECT count(*) n FROM requests'),first<{n:number}>(env,"SELECT count(*) n FROM requests WHERE status='failed'")]);return json({metrics:[{label:'Registered models',value:count(models)},{label:'Inference requests',value:count(reqs)},{label:'Errors',value:count(errors)},{label:'p95 latency (ms)',value:(await metrics(env)).p95_ms??'—'}],recent:await list(env,'SELECT * FROM requests ORDER BY created_at DESC LIMIT 8')})}

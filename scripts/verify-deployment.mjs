@@ -20,6 +20,17 @@ for(let attempt=1;attempt<=7;attempt++){
   assert.ok(Array.isArray(domain.items),'Domain-specific D1 API contract missing');
   const phase3=await (await check('/api/circuit-leases',200,token)).json();
   assert.ok(Array.isArray(phase3.items),'New domain module or migration missing on deployed Cloudflare Worker');
+  const agent=await (await check('/api/agents/config',200,token)).json();
+  assert.ok(agent.read_only && agent.mode==='operator_stepped' && agent.tools.length>=3,'Agent runtime missing or incorrectly configured');
+  await check('/api/agents/config',401);
+  const sessions=await (await check('/api/agents',200,token)).json();
+  assert.ok(Array.isArray(sessions.items),'Agent D1 migration is missing');
+  const decision=await (await check('/api/decision/objectives',200,token)).json();
+  assert.ok(decision && typeof decision==='object','Decision workspace unavailable');
+  const agentUI=await (await check('/agent.js',200)).text();
+  assert.ok(agentUI.includes('renderAgent'),'Agent cockpit asset missing');
+  const agentCSS=await (await check('/agent.css',200)).text();
+  assert.ok(agentCSS.includes('agent-shell'),'Agent design asset missing');
   const accessMe=await (await check('/api/access/me',200,token)).json();
   assert.equal(accessMe.kind,'root','Production root access was not accepted');
   const inventory=await (await check('/api/access/keys',200,token)).json();

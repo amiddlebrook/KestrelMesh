@@ -11,6 +11,10 @@ An edge inference gateway demonstration focused on **routing policy, failure iso
 
 > **Project status — portfolio engineering application.** The interfaces, D1-backed APIs, tests, and automatic deployment are functional. This is **not** a certified or audited enterprise product, and there are no claims of SSO, multi-tenant isolation, unbounded free usage, or uptime SLAs.
 
+## Decision workspace (Phase 8)
+
+A dedicated operational decision screen is available under **SLO Objectives**. This includes a real D1-backed API, validated writes and a product-specific interface; see [Decision workspace architecture](docs/DECISION_WORKSPACE.md).
+
 ## What makes it different
 
 - **Route preview.** Inspect routing decisions without invoking inference.
@@ -159,3 +163,7 @@ The protected **SLO Console** workspace is a purpose-built analytical interface 
 - **Verification:** SQL-backed studio tests, authorization/redaction tests, regression tests for exported report structure, TypeScript checks, and GitHub Actions live HTTP checks of both workbenches.
 
 This release is **not** multi-tenant or SSO-ready; write telemetry is best effort, and advanced distributed workflows remain outside the current production scope. See [Roadmap](docs/ROADMAP.md).
+
+## Agent runtime
+
+The **Agent** workspace provides a bounded Workers AI + D1 read-only tool-use loop, domain-specific tool allowlists, operator-stepped execution, and auditable traces. See [Agent Runtime](docs/AGENTS.md) for the lifecycle, trust boundaries, and limitations.

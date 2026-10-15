@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS inference_objectives(model_id TEXT PRIMARY KEY REFERENCES models(id),target_pct REAL NOT NULL CHECK(target_pct BETWEEN 90 AND 100),p95_target_ms INTEGER NOT NULL CHECK(p95_target_ms BETWEEN 1 AND 60000),updated_at TEXT NOT NULL);
