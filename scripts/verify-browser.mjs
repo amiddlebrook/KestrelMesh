@@ -13,7 +13,7 @@ const browser=process.env.CHROME_BIN||'google-chrome';
 if(!origin||!/^https:\/\//.test(origin)||!product||!section||!token)throw Error('DEPLOY_URL, APP_NAME, APP_PRIMARY_SECTION, and APP_ADMIN_TOKEN are required');
 const output=process.env.BROWSER_ARTIFACT_DIR||'artifacts/browser';
 const tick=ms=>new Promise(r=>setTimeout(r,ms));
-const profile=await mkdtemp(join(tmpdir(),'acceptance-chrome-'));
+let profile=await mkdtemp(join(tmpdir(),'acceptance-chrome-'));
 let proc;
 const errors=[];
 class CDP {
@@ -28,7 +28,23 @@ class CDP {
  async eval(expression){const r=await this.send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw Error(r.exceptionDetails.text||'Browser evaluate failed');return r.result?.value;}
  async close(){this.ws.close();}
 }
-async function waitPort(){for(let i=0;i<75;i++){if(proc.exitCode!==null)throw Error(`Chromium exited ${proc.exitCode}`);try{const raw=await readFile(join(profile,'DevToolsActivePort'),'utf8');return Number(raw.split('\n')[0]);}catch{}await tick(200);}throw Error('Chromium DevTools never started');}
+async function waitPort(){for(let i=0;i<75;i++){if(proc.exitCode!==null||proc.signalCode)throw Error(`Chromium exited ${proc.exitCode??proc.signalCode}`);try{const raw=await readFile(join(profile,'DevToolsActivePort'),'utf8');return Number(raw.split('\n')[0]);}catch{}await tick(200);}throw Error('Chromium DevTools never started');}
+async function startChromium(){
+ const failures=[];
+ for(let attempt=1;attempt<=3;attempt++){
+  if(attempt>1){await rm(profile,{recursive:true,force:true});profile=await mkdtemp(join(tmpdir(),'acceptance-chrome-'));await tick(400);}
+  const args=['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--no-first-run','--no-default-browser-check','--disable-background-networking','--disable-extensions',`--user-data-dir=${profile}`,'--remote-debugging-port=0','about:blank'];
+  if(attempt>1)args.splice(1,0,'--no-zygote');
+  let stderr='';
+  proc=spawn(browser,args,{stdio:['ignore','ignore','pipe']});
+  proc.stderr?.on('data',chunk=>{stderr=(stderr+chunk.toString()).slice(-3000)});
+  try{return await waitPort();}catch(error){
+   failures.push(`attempt ${attempt}: ${String(error.message)}; chrome=${stderr.replace(/\s+/g,' ').slice(-500)}`);
+   if(proc.exitCode===null&&!proc.signalCode){proc.kill('SIGTERM');await tick(500);if(proc.exitCode===null&&!proc.signalCode)proc.kill('SIGKILL');}
+  }
+ }
+ throw Error(`Chromium startup failed after 3 isolated profile attempts: ${failures.join(' | ')}`);
+}
 async function openPage(port){const response=await fetch(`http://127.0.0.1:${port}/json/new?about:blank`,{method:'PUT'});assert.equal(response.status,200,'Could not open CDP tab');const info=await response.json();const ws=new WebSocket(info.webSocketDebuggerUrl);await new Promise((resolve,reject)=>{ws.addEventListener('open',resolve,{once:true});ws.addEventListener('error',reject,{once:true})});const c=new CDP(ws);await c.send('Page.enable');await c.send('Runtime.enable');return c;}
 async function navigate(c,url){await c.send('Page.navigate',{url});for(let i=0;i<80;i++){await tick(150);try{if(await c.eval('document.readyState === "complete" && !!document.querySelector("#app")'))break;}catch{}if(i===79)throw Error(`Browser did not render ${url}`);}await tick(1500);}
 async function snapshot(c,file){const r=await c.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false,fromSurface:true});assert.ok(r.data,'Screenshot missing');await writeFile(join(output,file),Buffer.from(r.data,'base64'));}
@@ -42,8 +58,7 @@ async function inspect(c,mode){const report=await c.eval(`(()=>({title:document.
  return report;
 }
 try {
- proc=spawn(browser,['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--no-first-run','--no-default-browser-check','--disable-background-networking','--disable-extensions',`--user-data-dir=${profile}`,'--remote-debugging-port=0','about:blank'],{stdio:'ignore'});
- const port=await waitPort();await mkdir(output,{recursive:true});
+ const port=await startChromium();await mkdir(output,{recursive:true});
  for(const mode of ['desktop','mobile']){
   const c=await openPage(port);
   const mobile=mode==='mobile';await c.send('Emulation.setDeviceMetricsOverride',{width:mobile?390:1440,height:mobile?844:900,deviceScaleFactor:1,mobile});
