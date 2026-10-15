@@ -107,7 +107,6 @@ export async function accessApi(req:Request,env:Env,url:URL,principal:Principal)
     const token=`efk_${id}_${secret}`;
     const expires=new Date(Date.now()+days*86400000).toISOString();
     await execute(env,'INSERT INTO access_keys(id,label,role,route_prefix,secret_hash,created_at,expires_at,revoked_at,last_used_at) VALUES(?,?,?,?,?,?,?,NULL,NULL)',id,data.label.trim(),data.role,prefix,await sha256(token),now(),expires);
-    await execute(env,'INSERT INTO access_audit(id,action,subject_id,actor_id,detail,created_at) VALUES(?,?,?,?,?,?)',uid(),'issued',id,'root',JSON.stringify({role:data.role,prefix,expires_at:expires}),now());
     return json({id,token,label:data.label.trim(),role:data.role,route_prefix:prefix,expires_at:expires,warning:'Store this credential now: plaintext is displayed only once.'},201);
   }
   const revoke=p.match(/^\/api\/access\/keys\/([0-9a-f-]{36})\/revoke$/);
@@ -117,7 +116,6 @@ export async function accessApi(req:Request,env:Env,url:URL,principal:Principal)
     if (row.revoked_at) fail(409,'Credential is already revoked');
     const result=await env.DB.prepare('UPDATE access_keys SET revoked_at=? WHERE id=? AND revoked_at IS NULL').bind(now(),row.id).run();
     if ((result.meta?.changes??0)!==1) fail(409,'Credential was already revoked');
-    await execute(env,'INSERT INTO access_audit(id,action,subject_id,actor_id,detail,created_at) VALUES(?,?,?,?,?,?)',uid(),'revoked',row.id,'root',JSON.stringify({label:row.label}),now());
     return json({revoked:true,id:row.id});
   }
   fail(404,'Unknown access management operation');
