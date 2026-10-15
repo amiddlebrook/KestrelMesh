@@ -167,3 +167,7 @@ This release is **not** multi-tenant or SSO-ready; write telemetry is best effor
 ## Agent runtime
 
 The **Agent** workspace provides a bounded Workers AI + D1 read-only tool-use loop, domain-specific tool allowlists, operator-stepped execution, and auditable traces. See [Agent Runtime](docs/AGENTS.md) for the lifecycle, trust boundaries, and limitations.
+
+## Agent evidence dossiers and human review
+
+The bounded, read-only Workers AI agent provides `GET /api/agents/:id/dossier` (ordered trace, data snapshot, SHA-256 fingerprint) and an immutable human review at `POST /api/agents/:id/review`. Reviews require a root-admin credential and an explicit written justification. An **accepted** review confirms a human evaluated the report; it never authorizes a workflow, evidence, deployment, production route or model promotion. These fingerprints do not independently prove source authenticity, and review records are not a compliance-grade audit. The agent interface renders the trace in a product-specific workspace and supports a local JSON evidence download.

@@ -79,7 +79,8 @@ export async function withApi(req: Request, env: Env, fn: Handler): Promise<Resp
      : await access.authenticate(req,env,url);
    const managed=await access.accessApi(req,env,url,principal);
    const operations=await import('./operations');
-   response=managed || await operations.operationsApi(req,env,url,principal) || await fn(req,env,url);
+   const review=await import('./agent-review');
+   response=managed || await review.agentReviewApi(req,env,url,principal) || await operations.operationsApi(req,env,url,principal) || await fn(req,env,url);
   } catch(error) {
    if(error instanceof HttpError)response=json({error:error.message},error.status);
    else {console.error('Request error',requestId,error);response=json({error:'Internal server error'},500);}

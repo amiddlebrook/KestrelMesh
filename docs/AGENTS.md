@@ -38,3 +38,7 @@ This is a genuine, **bounded AI reasoning loop** powered by Cloudflare Workers A
 - `GET /api/agents/metrics` — persisted run states, not invented model-usage analytics
 
 Agent conclusions are **interpretations, not attestations**. This release does not provide independent factual verification, supervised policy execution or enterprise identity.
+
+## Operator review and evidence integrity (Phase 9)
+
+Agent reviews are a single-write human decision in D1: only the root administrator can sign, and terminal agent runs alone can be reviewed. The dossier export includes session context, a trace of allowlisted tool observations, the review metadata and a SHA-256 content fingerprint. The fingerprint is **not a signature**, and this API is not a forensic, immutable external ledger. There is no unattended AI orchestration or autonomous write authority. Production verification checks the review capability and migrated schema.
