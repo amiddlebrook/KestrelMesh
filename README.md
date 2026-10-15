@@ -8,11 +8,11 @@ Policy-driven inference routing with failure isolation.
 
 [![CI](https://github.com/amiddlebrook/KestrelMesh/actions/workflows/ci.yml/badge.svg)](https://github.com/amiddlebrook/KestrelMesh/actions/workflows/ci.yml) [![Cloudflare deployment](https://github.com/amiddlebrook/KestrelMesh/actions/workflows/deploy.yml/badge.svg)](https://github.com/amiddlebrook/KestrelMesh/actions/workflows/deploy.yml) [![MIT License](https://img.shields.io/badge/license-MIT-2381C5)](LICENSE) [![Zero mandatory cost](https://img.shields.io/badge/hosting-free--tier%20only-129E80)](docs/ZERO_COST_POLICY.md)
 
-**[Launch application](https://portfolio-kestrelmesh.averymiddlebrook2014.workers.dev)** · **[Watch the 20-second demo](docs/media/brag.mp4)** · [Architecture](docs/ARCHITECTURE.md) · [Security](docs/SECURITY.md) · [Roadmap](docs/ROADMAP.md)
+**[Launch application](https://portfolio-kestrelmesh.averymiddlebrook2014.workers.dev)** · **Full 20-second demo plays right below** · [Architecture](docs/ARCHITECTURE.md) · [Security](docs/SECURITY.md) · [Roadmap](docs/ROADMAP.md)
 
-[![KestrelMesh — animated product preview](docs/media/brag-preview.gif)](docs/media/brag.mp4)
+![KestrelMesh — full 20-second product demo, autoplaying inline and looping](docs/media/brag-inline.gif)
 
-*The demo uses real public Cloudflare UI captures with illustrative guest-mode records. The animation is a product tour, not evidence of paid AI execution.*
+*The entire 20-second walkthrough plays automatically and loops right here in the README (silent; no download). The footage uses real public Cloudflare UI captures with illustrative guest-mode records, not paid AI execution.*
 
 </div>
 
@@ -29,9 +29,9 @@ AI requests fail in ways that ordinary HTTP routing often misses: degraded provi
 
 ## See it work
 
-[![Play the full demo video](docs/media/brag-poster.jpg)](docs/media/brag.mp4)
+**Watch the full 20-second animated walkthrough embedded above.** It runs inline, loops automatically, and requires no MP4 download or separate tab.
 
-**[▶ Watch full MP4](docs/media/brag.mp4)** · **[↗ Try the live guest demo](https://portfolio-kestrelmesh.averymiddlebrook2014.workers.dev)** · [Storyboard and reproduction](docs/BRAG_DEMO.md)
+**[↗ Try the live guest demo](https://portfolio-kestrelmesh.averymiddlebrook2014.workers.dev)** · [Storyboard and reproduction](docs/BRAG_DEMO.md) · [Optional high-resolution MP4](docs/media/brag.mp4)
 
 KestrelMesh starts with an illustrative, read-only guest experience. **Authenticated operations require the administrator's API credential**; the README does not publish or distribute access keys.
 
