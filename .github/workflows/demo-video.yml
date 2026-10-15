@@ -40,9 +40,16 @@ jobs:
           set -euo pipefail
           APP="$(python3 -c 'import json; print(json.load(open("docs/brag.json"))["name"])')"
           ART="$(echo "$APP" | tr '[:upper:]' '[:lower:]')-browser-acceptance"
-          RUN_ID="$(gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts?name=${ART}&per_page=30" --jq '.artifacts[] | select(.expired == false) | .workflow_run.id' | head -n 1)"
-          test -n "$RUN_ID" || { echo 'Missing completed production browser evidence'; exit 1; }
-          mkdir -p docs/demo-source
+          RUN_ID=""
+          while IFS= read -r CANDIDATE; do
+            test -n "$CANDIDATE" || continue
+            STATUS="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${CANDIDATE}" --jq '.conclusion + " " + .head_branch')"
+            if [ "$STATUS" = "success main" ]; then
+              RUN_ID="$CANDIDATE"
+              break
+            fi
+          done < <(gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts?name=${ART}&per_page=30" --jq '.artifacts[] | select(.expired == false) | .workflow_run.id' | awk '!seen[$0]++')
+          test -n "$RUN_ID" || { echo 'No successful main-branch production browser capture artifact'; exit 1; }
           gh run download "$RUN_ID" --name "$ART" --dir docs/demo-source
           test -s "docs/demo-source/${APP}-desktop-guest.png"
           test -s "docs/demo-source/${APP}-mobile-guest.png"
