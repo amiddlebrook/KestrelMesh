@@ -42,9 +42,23 @@ export async function api(req:Request,env:Env,url:URL):Promise<Response>{
  const toggle=p.match(/^\/api\/models\/([^/]+)\/toggle$/);if(toggle&&m==='POST'){const row=await env.DB.prepare('UPDATE models SET enabled=CASE enabled WHEN 1 THEN 0 ELSE 1 END WHERE id=?').bind(toggle[1]).run();if(row.meta?.changes!==1)fail(404,'Model not found');return json({ok:true})}
  if(p==='/api/rules'&&m==='GET')return json({items:await list(env,'SELECT r.*,m.name model FROM routing_rules r JOIN models m ON r.model_id=m.id ORDER BY length(r.match_prefix) DESC')});
  if(p==='/api/rules'&&m==='POST'){const b=await body(req),id=uid(),target=await first<Model>(env,'SELECT * FROM models WHERE id=?',required(b.model_id,'model_id'));if(!target)fail(404,'Model not found');await execute(env,'INSERT INTO routing_rules VALUES(?,?,?,?,?)',id,required(b.name,'name'),required(b.match_prefix,'match_prefix',60),target.id,now());return json({id},201)}
- if(p==='/api/route-preview'&&m==='POST'){const b=await body(req);const {disabledByCircuit}=await import('./advanced');const disabled=await disabledByCircuit(env);const choice=chooseModel((await list<Model>(env,'SELECT * FROM models')).filter(m=>!disabled.has(m.id)),required(b.task,'task'),await list<Route>(env,'SELECT * FROM routing_rules'));return json({model:choice,excluded_circuit_models:disabled.size,reason:choice?'Enabled healthy routing rule or lowest priority':'No healthy enabled models'})}
+ if(p==='/api/route-preview'&&m==='POST'){const b=await body(req);const {disabledByCircuit}=await import('./advanced');const disabled=await disabledByCircuit(env);const choice=chooseModel((await list<Model>(env,'SELECT * FROM models')).filter(m=>!disabled.has(m.id)&&(m.provider==='fixture'||env.FREE_AI_ENABLED==='true')),required(b.task,'task'),await list<Route>(env,'SELECT * FROM routing_rules'));return json({model:choice,excluded_circuit_models:disabled.size,reason:choice?'Enabled healthy routing rule or lowest priority':'No healthy enabled models'})}
+ if(p==='/api/route-plan'&&m==='POST'){
+  const b=await body(req),task=required(b.task,'task',3000),cap=b.max_candidates===undefined?5:Number(b.max_candidates);
+  if(!Number.isSafeInteger(cap)||cap<1||cap>10)fail(400,'max_candidates must be an integer from 1 to 10');
+  const models=await list<Model>(env,'SELECT * FROM models'),blocked=await disabledByCircuit(env);
+  const rules=await list<Route>(env,'SELECT * FROM routing_rules');
+  const aiEnabled=env.FREE_AI_ENABLED==='true';
+  const enabled=models.filter(model=>model.enabled===1&&!blocked.has(model.id)&&(model.provider==='fixture'||aiEnabled));
+  const chain:Model[]=[];let available=enabled;
+  while(chain.length<cap&&available.length){
+    const next=chooseModel(available,task,rules);if(!next)break;
+    chain.push(next);available=available.filter(model=>model.id!==next.id);
+  }
+  return json({task_preview:task.slice(0,120),candidates:chain.map((model,index)=>({rank:index+1,id:model.id,name:model.name,provider:model.provider,requires_remote_ai:model.provider==='workers_ai',available_without_paid_services:model.provider==='fixture'||aiEnabled,priority:model.priority})),excluded_circuit_models:models.filter(v=>blocked.has(v.id)).map(v=>v.id),excluded_disabled_models:models.filter(v=>v.enabled!==1).map(v=>v.id),excluded_remote_ai_models:models.filter(v=>v.provider==='workers_ai'&&!aiEnabled).map(v=>v.id),remote_ai_enabled:aiEnabled,inference_calls:0,side_effects:0,note:'Read-only fallback plan; actual provider calls may fail or exhaust daily free-tier allowance.'});
+ }
  if(p==='/api/infer'&&m==='POST'){
-  const b=await body(req),task=required(b.task,'task',3000);const models=await list<Model>(env,'SELECT * FROM models');const open=await disabledByCircuit(env);const eligible=models.filter(model=>!open.has(model.id));const target=chooseModel(eligible,task,await list<Route>(env,'SELECT * FROM routing_rules'));if(!target)fail(409,'Register or enable an inference model first');
+  const b=await body(req),task=required(b.task,'task',3000);const models=await list<Model>(env,'SELECT * FROM models');const open=await disabledByCircuit(env);const eligible=models.filter(model=>!open.has(model.id)&&(model.provider==='fixture'||env.FREE_AI_ENABLED==='true'));const target=chooseModel(eligible,task,await list<Route>(env,'SELECT * FROM routing_rules'));if(!target)fail(409,'Register or enable an inference model first');
   const key=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(target.id+'\n'+task));const cacheKey=Array.from(new Uint8Array(key)).map(c=>c.toString(16).padStart(2,'0')).join('');
   const hit=await first<{response:string}>(env,'SELECT response FROM response_cache WHERE key=? AND expires_at>?',cacheKey,now());const id=uid();if(hit){await execute(env,'INSERT INTO requests VALUES(?,?,?,?,?,?,?,?,?,?)',id,target.id,task.slice(0,180),'completed',0,task.length,hit.response.length,1,now(),'');return json({id,model:target.name,response:hit.response,cache_hit:true,latency_ms:0})}
   const probe=await acquireHalfOpenProbe(env,target.id);if(!probe.allowed)fail(503,'Backend is in circuit-breaker recovery; retry or select another model');

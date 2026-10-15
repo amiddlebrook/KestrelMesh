@@ -146,6 +146,9 @@ for(let attempt=1;attempt<=7;attempt++){
   assert.ok(phase23Style.includes('--success:') && phase23Style.includes('--warning:') && phase23Style.includes(':focus-visible'),'Phase 23 balanced UX assets missing');
   const phase23Lab=await (await check('/domain-lab.js',200)).text();
   assert.ok(phase23Lab.includes('Traffic routing simulator'),'Phase 23 product-specific analysis UI missing');
+  assert.ok(phase23Lab.includes('lab-plan'),'Phase 26 product-specific interaction is missing');
+  const productProbe=await fetch(new URL('/api/route-plan',origin),{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({"task":"demo","max_candidates":0}),signal:AbortSignal.timeout(10000),redirect:'error'});
+  assert.equal(productProbe.status,400,'Phase 26 API input validation contract is missing');
   const page=await check('/',200);
   const html=await page.text(); assert.ok(html.includes('<html')||html.includes('<!doctype html>'),'HTML shell missing');assert.ok(html.includes('/lens.css') && html.includes('/mission.css') && html.includes('/home.css') && html.includes('/palette-balance.css'),'Phase 23 visual assets are not referenced by application');
   console.log(`Live deployment verified: ${origin} (health, D1 domain API, protected API, static site)`);

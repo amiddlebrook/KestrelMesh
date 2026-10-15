@@ -19,5 +19,6 @@ export async function domainLabApi(req:Request,env:Env,url:URL):Promise<Response
  if(!Array.isArray(input)||input.length<1||input.length>40)fail(400,'Provide between 1 and 40 tasks');
  const tasks=input.map((v:unknown,i:number)=>required(v,`tasks[${i}]`,1000));
  const [models,rules,disabled]=await Promise.all([list<Model>(env,'SELECT * FROM models ORDER BY priority ASC'),list<Route>(env,'SELECT * FROM routing_rules'),disabledByCircuit(env)]);
- return json(routeReplay(tasks,models,rules,disabled));
+ const blocked=new Set([...disabled,...models.filter(m=>m.provider==='workers_ai'&&env.FREE_AI_ENABLED!=='true').map(m=>m.id)]);
+ return json({...routeReplay(tasks,models,rules,blocked),excluded_remote_ai_models:models.filter(m=>m.provider==='workers_ai'&&env.FREE_AI_ENABLED!=='true').map(m=>m.name)});
 }
