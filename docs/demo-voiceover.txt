@@ -1,0 +1,1 @@
+Meet KestrelMesh. Preview inference routes before sending requests. Policy guards, circuit breakers, and recovery leases isolate failing providers. Keep fallbacks predictable and resource usage within a defined budget.
