@@ -1,0 +1,75 @@
+name: Publish 20-second narrated demo
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/audio-demo.yml
+      - scripts/build-audio-demo.py
+      - docs/demo-voiceover.txt
+      - docs/media/brag.mp4
+  workflow_dispatch: {}
+permissions:
+  contents: write
+concurrency:
+  group: narrated-demo-${{ github.repository }}
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install zero-cost offline narration tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg espeak-ng
+      - name: Optionally enable higher-quality open-source neural voice
+        run: |
+          mkdir -p /tmp/piper
+          if python -m pip install --disable-pip-version-check -q piper-tts; then
+            curl -fLSs --retry 2 --connect-timeout 12 --max-time 120 \
+              https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx \
+              -o /tmp/piper/en_US-lessac-medium.onnx || rm -f /tmp/piper/en_US-lessac-medium.onnx
+            if [ -s /tmp/piper/en_US-lessac-medium.onnx ]; then
+              curl -fLSs --retry 2 --connect-timeout 12 --max-time 45 \
+                https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx.json \
+                -o /tmp/piper/en_US-lessac-medium.onnx.json || rm -f /tmp/piper/en_US-lessac-medium.onnx
+            fi
+          fi
+          if [ ! -s /tmp/piper/en_US-lessac-medium.onnx ]; then
+            echo 'Neural voice unavailable; using local eSpeak fallback'
+          fi
+      - name: Generate narrated 20-second MP4
+        run: |
+          python scripts/build-audio-demo.py \
+            --source docs/media/brag.mp4 \
+            --narration docs/demo-voiceover.txt \
+            --output docs/media/brag-with-audio.mp4
+      - name: Stage static Cloudflare playback site and source video
+        run: |
+          set -euo pipefail
+          mkdir -p public/showcase
+          cp docs/media/brag-with-audio.mp4 public/showcase/demo.mp4
+          cp docs/media/brag-poster.jpg public/showcase/poster.jpg
+          test -s public/showcase/demo.mp4
+          test -s public/showcase/poster.jpg
+          test -s public/showcase/index.html
+          test -s public/showcase/captions.vtt
+      - name: Publish audio assets; standard deploy workflow handles Cloudflare
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/media/brag-with-audio.mp4 public/showcase/demo.mp4 public/showcase/poster.jpg
+          if git diff --cached --quiet; then
+            echo 'Narrated demo already current'
+            exit 0
+          fi
+          git commit -m "docs: publish narrated 20-second playback [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main
