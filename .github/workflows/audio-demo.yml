@@ -7,6 +7,9 @@ on:
       - scripts/build-audio-demo.py
       - docs/demo-voiceover.txt
       - docs/media/brag.mp4
+  workflow_run:
+    workflows: ["Publish BRAG product demo"]
+    types: [completed]
   workflow_dispatch: {}
 permissions:
   contents: write
@@ -15,6 +18,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   publish:
+    if: ${{ github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
