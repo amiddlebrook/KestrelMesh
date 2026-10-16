@@ -1,0 +1,10 @@
+WEBVTT
+
+00:00:00.900 --> 00:00:06.400
+Meet KestrelMesh. Preview inference routes before sending requests.
+
+00:00:06.400 --> 00:00:12.600
+Policy guards, circuit breakers, and recovery leases isolate failing providers.
+
+00:00:12.600 --> 00:00:19.700
+Keep fallbacks predictable and resource usage within a defined budget.
